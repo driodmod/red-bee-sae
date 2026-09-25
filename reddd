@@ -1,0 +1,1710 @@
+-- Red Bee Hub v6.4 - Steal An Egg - Anticheat Active
+
+local P = game:GetService("Players")
+local RS = game:GetService("ReplicatedStorage")
+local R = game:GetService("RunService")
+local TS = game:GetService("TweenService")
+local UIS = game:GetService("UserInputService")
+local LP = P.LocalPlayer
+
+local env = (type(getgenv) == "function" and getgenv()) or _G
+if type(env.__RBX) == "table" then
+    for _, v in pairs(env.__RBX) do
+        if typeof(v) == "RBXScriptConnection" then pcall(function() v:Disconnect() end) end
+    end
+end
+env.__RBX = {}
+env.__RBG = (tonumber(env.__RBG) or 0) + 1
+local GEN = env.__RBG
+RedBeeTop = env.__RBX
+RedBeeLoadT = { start = os.clock() }
+
+RedBeeRealPrint = RedBeeRealPrint or print
+print = function(...)
+    local e = (type(getgenv) == "function" and getgenv()) or _G
+    if e.RedBeeDebug then RedBeeRealPrint(...) end
+end
+
+-- ================================================================
+-- SPLASH
+-- ================================================================
+RedBeeSplash = { step = function() end, discord = function() end,
+                 fail = function() end, done = function() end,
+                 whenClosed = function(f) pcall(f) end }
+;(function()
+    pcall(function()
+        local HS = game:GetService("HttpService")
+        local LOGO = "rbxassetid://95108798243406"
+        local INVITE_CODE = "9KSXyabAYV"
+        local INVITE_URL = "https://discord.gg/" .. INVITE_CODE
+        local shownAt, lastBeat, finished, inDiscord = os.clock(), os.clock(), false, false
+        local JOIN_H = (UIS.TouchEnabled and not UIS.KeyboardEnabled) and 44 or 38
+        local W, H, OPEN_H = 300, 132, 224 + JOIN_H
+        local WHITE = Color3.fromRGB(240,240,246)
+        local GREY  = Color3.fromRGB(138,138,146)
+        local EDGE  = Color3.fromRGB(48,48,56)
+        local ONLINE = Color3.fromRGB(87,242,135)
+        local REDBEE = Color3.fromRGB(240,70,90)
+
+        local function mk(c, p, par)
+            local o = Instance.new(c)
+            for k, v in pairs(p) do o[k] = v end
+            o.Parent = par
+            return o
+        end
+        local function tw(o, t, p, st)
+            pcall(function()
+                TS:Create(o, TweenInfo.new(t, st or Enum.EasingStyle.Quint,
+                    Enum.EasingDirection.Out), p):Play()
+            end)
+        end
+
+        local counts = nil
+        task.spawn(function()
+            pcall(function()
+                local raw = game:HttpGet("https://discord.com/api/v9/invites/"
+                    .. INVITE_CODE .. "?with_counts=true")
+                local t = HS:JSONDecode(raw)
+                if tonumber(t.approximate_member_count) then
+                    counts = { members = tonumber(t.approximate_member_count),
+                               online = tonumber(t.approximate_presence_count) or 0 }
+                end
+            end)
+        end)
+        local function commas(n)
+            local s = tostring(math.floor(n))
+            repeat local k s, k = s:gsub("^(%d+)(%d%d%d)", "%1,%2") until k == 0
+            return s
+        end
+
+        local parent = (gethui and gethui()) or game:GetService("CoreGui")
+        local old = parent:FindFirstChild("RedBeeSplash")
+        if old then old:Destroy() end
+
+        local gui = mk("ScreenGui", { Name = "RedBeeSplash", DisplayOrder = 999997,
+            IgnoreGuiInset = true, ResetOnSpawn = false,
+            ZIndexBehavior = Enum.ZIndexBehavior.Sibling }, parent)
+        local shade = mk("Frame", { Size = UDim2.fromScale(1,1),
+            BackgroundColor3 = Color3.fromRGB(6,6,8), BackgroundTransparency = 1,
+            BorderSizePixel = 0 }, gui)
+        local card = mk("Frame", { AnchorPoint = Vector2.new(.5,.5),
+            Position = UDim2.fromScale(.5,.5), Size = UDim2.fromOffset(W,H),
+            BackgroundColor3 = Color3.new(1,1,1), BackgroundTransparency = 1,
+            BorderSizePixel = 0, ClipsDescendants = true }, shade)
+        mk("UICorner", { CornerRadius = UDim.new(0,14) }, card)
+        mk("UIGradient", { Color = ColorSequence.new(
+            Color3.fromRGB(26,26,30), Color3.fromRGB(14,14,17)), Rotation = 90 }, card)
+        local cs = mk("UIStroke", { Color = Color3.new(1,1,1), Thickness = 1,
+            Transparency = 1, ApplyStrokeMode = Enum.ApplyStrokeMode.Border }, card)
+        mk("UIGradient", { Color = ColorSequence.new(REDBEE,
+            Color3.fromRGB(41,41,48)), Rotation = 90 }, cs)
+
+        local touchUI = UIS.TouchEnabled and not UIS.KeyboardEnabled
+        local function fit()
+            local vp = workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize
+            if not vp or vp.X < 10 or vp.Y < 10 then return 1 end
+            local want = touchUI and 1.25 or math.clamp(vp.Y / 620, 1.2, 1.8)
+            local room = math.min((vp.X - 32) / W, (vp.Y - 32) / OPEN_H)
+            return math.max(0.6, math.min(want, room))
+        end
+        local baseScale = 1
+        pcall(function() baseScale = fit() end)
+        local scale = mk("UIScale", { Scale = baseScale * 0.92 }, card)
+
+        local logo = mk("ImageLabel", { Position = UDim2.fromOffset(22,22),
+            Size = UDim2.fromOffset(38,38), BackgroundTransparency = 1,
+            Image = LOGO, ImageTransparency = 1, ScaleType = Enum.ScaleType.Fit }, card)
+        local title = mk("TextLabel", { Position = UDim2.fromOffset(72,22),
+            Size = UDim2.new(1,-94,0,20), BackgroundTransparency = 1,
+            Font = Enum.Font.GothamBold, TextSize = 17, TextColor3 = WHITE,
+            TextTransparency = 1, TextXAlignment = Enum.TextXAlignment.Left,
+            Text = "Red Bee Hub" }, card)
+        local sub = mk("TextLabel", { Position = UDim2.fromOffset(72,43),
+            Size = UDim2.new(1,-94,0,15), BackgroundTransparency = 1,
+            Font = Enum.Font.Gotham, TextSize = 12, TextColor3 = GREY,
+            TextTransparency = 1, TextXAlignment = Enum.TextXAlignment.Left,
+            Text = "Steal An Egg  ·  V6.4" }, card)
+        local status = mk("TextLabel", { Position = UDim2.new(0,22,1,-52),
+            Size = UDim2.new(1,-84,0,14), BackgroundTransparency = 1,
+            Font = Enum.Font.GothamMedium, TextSize = 12,
+            TextColor3 = Color3.fromRGB(200,200,206), TextTransparency = 1,
+            TextXAlignment = Enum.TextXAlignment.Left, Text = "Starting" }, card)
+        local pct = mk("TextLabel", { Position = UDim2.new(1,-62,1,-52),
+            Size = UDim2.fromOffset(40,14), BackgroundTransparency = 1,
+            Font = Enum.Font.GothamMedium, TextSize = 12, TextColor3 = GREY,
+            TextTransparency = 1, TextXAlignment = Enum.TextXAlignment.Right,
+            Text = "0%" }, card)
+        local track = mk("Frame", { Position = UDim2.new(0,22,1,-30),
+            Size = UDim2.new(1,-44,0,4), BackgroundColor3 = Color3.fromRGB(41,41,48),
+            BackgroundTransparency = 1, BorderSizePixel = 0 }, card)
+        mk("UICorner", { CornerRadius = UDim.new(1,0) }, track)
+        local fill = mk("Frame", { Size = UDim2.fromScale(0,1),
+            BackgroundColor3 = REDBEE, BackgroundTransparency = 1,
+            BorderSizePixel = 0 }, track)
+        mk("UICorner", { CornerRadius = UDim.new(1,0) }, fill)
+
+        local disc = mk("Frame", { Position = UDim2.fromOffset(22,72),
+            Size = UDim2.new(1,-44,0,92+JOIN_H), BackgroundTransparency = 1,
+            Visible = false }, card)
+        local rule = mk("Frame", { Size = UDim2.new(1,0,0,1),
+            BackgroundColor3 = EDGE, BackgroundTransparency = 1,
+            BorderSizePixel = 0 }, disc)
+        local dT = mk("TextLabel", { Position = UDim2.fromOffset(0,14),
+            Size = UDim2.new(1,0,0,18), BackgroundTransparency = 1,
+            Font = Enum.Font.GothamBold, TextSize = 14, TextColor3 = WHITE,
+            TextTransparency = 1, TextXAlignment = Enum.TextXAlignment.Left,
+            Text = "Join the community" }, disc)
+        local dS = mk("TextLabel", { Position = UDim2.fromOffset(0,34),
+            Size = UDim2.new(1,0,0,15), BackgroundTransparency = 1,
+            Font = Enum.Font.Gotham, TextSize = 12, TextColor3 = GREY,
+            TextTransparency = 1, TextXAlignment = Enum.TextXAlignment.Left,
+            Text = "Updates, configs and support" }, disc)
+        local dot = mk("Frame", { Position = UDim2.fromOffset(0,60),
+            Size = UDim2.fromOffset(6,6), BackgroundColor3 = ONLINE,
+            BackgroundTransparency = 1, BorderSizePixel = 0 }, disc)
+        mk("UICorner", { CornerRadius = UDim.new(1,0) }, dot)
+        local dC = mk("TextLabel", { Position = UDim2.fromOffset(12,56),
+            Size = UDim2.new(1,-12,0,14), BackgroundTransparency = 1,
+            Font = Enum.Font.GothamMedium, TextSize = 12, TextColor3 = GREY,
+            TextTransparency = 1, TextXAlignment = Enum.TextXAlignment.Left,
+            Text = "" }, disc)
+        local join = mk("TextButton", { Position = UDim2.fromOffset(0,82),
+            Size = UDim2.new(.62,-4,0,JOIN_H), BackgroundColor3 = REDBEE,
+            BackgroundTransparency = 1, BorderSizePixel = 0,
+            AutoButtonColor = false, Font = Enum.Font.GothamBold, TextSize = 14,
+            TextColor3 = Color3.new(1,1,1), TextTransparency = 1,
+            Text = "Join Discord", Modal = true, ZIndex = 2 }, disc)
+        mk("UICorner", { CornerRadius = UDim.new(0,9) }, join)
+        local jS = mk("UIScale", { Scale = 1 }, join)
+        local cont = mk("TextButton", { Position = UDim2.new(.62,4,0,82),
+            Size = UDim2.new(.38,-4,0,JOIN_H), BackgroundColor3 = Color3.new(1,1,1),
+            BackgroundTransparency = 1, BorderSizePixel = 0,
+            AutoButtonColor = false, Font = Enum.Font.GothamMedium, TextSize = 13,
+            TextColor3 = WHITE, TextTransparency = 1, Text = "Continue",
+            ZIndex = 2 }, disc)
+        mk("UICorner", { CornerRadius = UDim.new(0,9) }, cont)
+        local cSt = mk("UIStroke", { Color = EDGE, Thickness = 1,
+            Transparency = 1, ApplyStrokeMode = Enum.ApplyStrokeMode.Border }, cont)
+
+        local parts = {
+            { shade, "BackgroundTransparency", .3 }, { card, "BackgroundTransparency", .02 },
+            { cs, "Transparency", .45 }, { logo, "ImageTransparency", 0 },
+            { title, "TextTransparency", 0 }, { sub, "TextTransparency", 0 },
+            { status, "TextTransparency", 0 }, { pct, "TextTransparency", 0 },
+            { track, "BackgroundTransparency", 0 }, { fill, "BackgroundTransparency", 0 },
+        }
+        local dParts = {
+            { rule, "BackgroundTransparency", 0 }, { dT, "TextTransparency", 0 },
+            { dS, "TextTransparency", 0 }, { dot, "BackgroundTransparency", 0 },
+            { dC, "TextTransparency", 0 }, { join, "BackgroundTransparency", 0 },
+            { join, "TextTransparency", 0 }, { cont, "BackgroundTransparency", .94 },
+            { cont, "TextTransparency", 0 }, { cSt, "Transparency", 0 },
+        }
+        local function fadeSet(list, on, t)
+            for _, p in ipairs(list) do tw(p[1], t, { [p[2]] = on and p[3] or 1 }) end
+        end
+        local function setShown(on, t)
+            fadeSet(parts, on, t)
+            if disc.Visible then fadeSet(dParts, on, t) end
+            tw(scale, t, { Scale = on and baseScale or baseScale * .92 },
+                on and Enum.EasingStyle.Back or Enum.EasingStyle.Quint)
+        end
+
+        local target, shown = 0, 0
+        task.spawn(function()
+            while gui.Parent do
+                local dt = task.wait()
+                shown += (target - shown) * math.min(1, dt * 8)
+                pct.Text = ("%d%%"):format(math.floor(shown * 100 + .5))
+            end
+        end)
+
+        local function step(text, p)
+            if finished then return end
+            lastBeat = os.clock()
+            if text then status.Text = tostring(text) end
+            if p then
+                target = math.clamp(math.max(target, p), 0, 1)
+                tw(fill, .45, { Size = UDim2.fromScale(target, 1) })
+            end
+        end
+
+        local onClosed, cDone = {}, false
+        local function runClosed()
+            if cDone then return end
+            cDone = true
+            for _, f in ipairs(onClosed) do pcall(f) end
+        end
+        local function close(d)
+            if finished then return end
+            finished = true
+            task.delay(d or 0, function()
+                setShown(false, .3)
+                task.delay(.15, runClosed)
+                task.delay(.35, function() pcall(function() gui:Destroy() end) end)
+            end)
+        end
+
+        local function copyInv()
+            for _, f in pairs({ setclipboard, toclipboard, set_clipboard }) do
+                if type(f) == "function" and pcall(f, INVITE_URL) then return true end
+            end
+            return false
+        end
+        local function tryApp()
+            local req = (syn and syn.request) or request or http_request or httprequest
+            if type(req) ~= "function" then return end
+            local body = HS:JSONEncode({ cmd = "INVITE_BROWSER",
+                args = { code = INVITE_CODE }, nonce = HS:GenerateGUID(false) })
+            for port = 6463, 6472 do
+                task.spawn(pcall, req, {
+                    Url = ("http://127.0.0.1:%d/rpc?v=1"):format(port),
+                    Method = "POST",
+                    Headers = { ["Content-Type"] = "application/json",
+                        ["Origin"] = "https://discord.com" },
+                    Body = body })
+            end
+        end
+
+        local dOpen, accepted, closeWD = false, false, false
+        local function accept(opened)
+            if accepted then return end
+            accepted = true
+            if opened then
+                local cp = copyInv()
+                pcall(function() game:GetService("GuiService"):OpenBrowserWindow(INVITE_URL) end)
+                tryApp()
+                print("[REDBEE] Discord: " .. INVITE_URL)
+                join.Text = cp and "✓ Invite copied" or "✓ Opening Discord"
+                task.wait(.7)
+            end
+            fadeSet(dParts, false, .2)
+            task.wait(.15)
+            tw(card, .4, { Size = UDim2.fromOffset(W, H) })
+            task.wait(.4)
+            disc.Visible = false
+            dOpen, inDiscord = false, false
+            lastBeat = os.clock()
+            if closeWD then close(.2) end
+        end
+
+        local function discord()
+            if finished then return end
+            dOpen, inDiscord = true, true
+            if counts then
+                dC.Text = ("%s online  ·  %s members"):format(commas(counts.online),
+                    commas(counts.members))
+            else
+                dC.Text = "discord.gg/" .. INVITE_CODE
+                dParts[4][3] = 1
+                dC.Position = UDim2.fromOffset(0, 56)
+            end
+            disc.Visible = true
+            tw(card, .5, { Size = UDim2.fromOffset(W, OPEN_H) })
+            task.delay(.15, function() fadeSet(dParts, true, .35) end)
+            join.MouseEnter:Connect(function() tw(join, .15, { BackgroundColor3 = Color3.fromRGB(255,100,120) }) end)
+            join.MouseLeave:Connect(function() tw(join, .2, { BackgroundColor3 = REDBEE }) end)
+            join.MouseButton1Down:Connect(function() tw(jS, .1, { Scale = .97 }) end)
+            join.MouseButton1Up:Connect(function() tw(jS, .2, { Scale = 1 }, Enum.EasingStyle.Back) end)
+            join.Activated:Connect(function() task.spawn(accept, true) end)
+            join.MouseButton1Click:Connect(function() task.spawn(accept, true) end)
+            pcall(function() join.TouchTap:Connect(function() task.spawn(accept, true) end) end)
+            cont.Activated:Connect(function() task.spawn(accept, false) end)
+            cont.MouseButton1Click:Connect(function() task.spawn(accept, false) end)
+            pcall(function() cont.TouchTap:Connect(function() task.spawn(accept, false) end) end)
+        end
+
+        setShown(true, .4)
+        RedBeeSplash.step = step
+        RedBeeSplash.discord = discord
+        RedBeeSplash.whenClosed = function(f)
+            if cDone then pcall(f) else onClosed[#onClosed+1] = f end
+        end
+        RedBeeSplash.fail = function(why)
+            if finished then return end
+            status.Text = tostring(why)
+            status.TextColor3 = Color3.fromRGB(240,110,110)
+            close(4)
+        end
+        RedBeeSplash.done = function()
+            if finished then return end
+            step("Ready", 1)
+            if dOpen and not accepted then
+                closeWD = true
+                task.delay(8, function() if not accepted then accept(false) end end)
+                return
+            end
+            close(math.max(.45, 1 - (os.clock() - shownAt)))
+        end
+        task.spawn(function()
+            while not finished do
+                task.wait(1)
+                if not inDiscord and os.clock() - lastBeat > 30 then close(0) end
+            end
+        end)
+    end)
+end)()
+RedBeeSplash.step("Loading interface", .08)
+
+-- ================================================================
+-- RAYFIELD
+-- ================================================================
+local Rayfield
+for _, url in ipairs({ "https://sirius.menu/gen2",
+    "https://raw.githubusercontent.com/SiriusSoftwareLtd/Rayfield/main/source.lua" }) do
+    local ok, res = pcall(function() return game:HttpGet(url) end)
+    if ok and type(res) == "string" and #res > 1000 then
+        local okL, lib = pcall(function() return loadstring(res)() end)
+        if okL and type(lib) == "table" then Rayfield = lib break end
+    end
+end
+if not Rayfield then
+    RedBeeSplash.fail("Menu host down - try again in a minute")
+    return
+end
+RedBeeLoadT.lib = os.clock()
+RedBeeSplash.step("Waiting for the game", .3)
+
+-- ================================================================
+-- MODULE LOADER
+-- ================================================================
+local function waitF(p, n, t)
+    if not p then return nil end
+    local ok, c = pcall(function() return p:WaitForChild(n, t or 15) end)
+    return ok and c or nil
+end
+local function findD(root, n, t)
+    if not root then return nil end
+    local dl = os.clock() + (t or 15)
+    repeat
+        local f = root:FindFirstChild(n, true)
+        if f then return f end
+        task.wait(.2)
+    until os.clock() > dl
+    return nil
+end
+local function needM(root, ...)
+    local n = root
+    for _, x in ipairs({...}) do
+        if not n then return nil end
+        local ok, c = pcall(function() return n:WaitForChild(x, 20) end)
+        n = ok and c or nil
+    end
+    if not n then return nil end
+    local ok, m = pcall(require, n)
+    return ok and m or nil
+end
+
+local pkg = waitF(RS, "Packages")
+local net = waitF(pkg, "Networking")
+if not net then
+    RedBeeSplash.fail("Networking not found - are you in Steal An Egg?")
+    return
+end
+RedBeeSplash.step("Loading egg data", .45)
+local FieldCarryRE = findD(net, "RE/EggWorld/FieldEggCarry")
+local OwnerDropRE = findD(net, "RE/EggWorld/OwnerDropped")
+local EggState = needM(RS, "Client", "EggState")
+local SlotId = needM(RS, "Shared", "Util", "AreaEggSlotIdentity")
+local AssetsM = needM(RS, "Data", "Assets")
+local AD = AssetsM and AssetsM.Directory
+local Mutations = needM(RS, "Shared", "Modules", "Mutations")
+local Earnings = needM(RS, "Shared", "Util", "AssetEarnings")
+local PS = needM(RS, "Client", "PlotState")
+
+if not EggState then
+    RedBeeSplash.fail("Game not fully loaded - rejoin")
+    return
+end
+RedBeeSplash.step("Mapping guard areas", .55)
+
+RedBeeLoadT.game = os.clock()
+RedBeeSplash.discord()
+RedBeeLoadT.discord = os.clock()
+RedBeeSplash.step("Building menu", .65)
+
+pcall(function()
+    local e = (type(getgenv) == "function" and getgenv()) or _G
+    if e.__RBWINDOW and not e.__RBWINDOW.unloaded then e.__RBWINDOW:Unload() end
+end)
+
+local Window = Rayfield:CreateWindow({
+    name = "Red Bee Hub",
+    subtitle = "Steal An Egg",
+    icon = 95108798243406,
+    showName = "Red Bee Hub",
+    sidebarLayout = true,
+    profile = "Premium",
+    theme = {
+        AccentColor = Color3.fromRGB(240,70,90),
+        AccentStroke = Color3.fromRGB(40,40,40),
+        AccentGlow = .1,
+        TextColor = Color3.fromRGB(220,220,220),
+        BackgroundColor = Color3.fromRGB(12,12,12),
+        ElementColor = Color3.fromRGB(20,20,20),
+    },
+    configuration = { autoSave = false, autoLoad = false,
+        fileName = "RedBeeHub_StealAnEgg" },
+})
+;((type(getgenv) == "function" and getgenv()) or _G).__RBWINDOW = Window
+
+pcall(function()
+    local root = (gethui and gethui()) or game:GetService("CoreGui")
+    local sg
+    for _ = 1, 20 do
+        local ci = root:FindFirstChild("CollapsedIcon", true)
+        if ci and ci.Parent and ci.Parent.Name == "Red Bee Hub" then
+            sg = ci:FindFirstAncestorOfClass("ScreenGui")
+        end
+        if sg then break end
+        task.wait(.05)
+    end
+    if sg then
+        sg.Enabled = false
+        RedBeeSplash.whenClosed(function() sg.Enabled = true end)
+    end
+end)
+
+-- ================================================================
+-- TRACE
+-- ================================================================
+local TRACE = true
+local TRACE_FILE = "RedBeeHub_trace.txt"
+local traceBuf = {}
+local traceAt = 0
+local traceStart = os.clock()
+local canWF = (typeof(writefile) == "function")
+local function trace(msg)
+    if not TRACE then return end
+    local t = tostring(msg)
+    if t == traceBuf.last then
+        traceBuf.rep = (traceBuf.rep or 0) + 1
+        return
+    end
+    traceBuf.last = t
+    traceBuf.rep = 0
+    local line = string.format("[%7.2fs] %s", os.clock() - traceStart, t)
+    if (type(getgenv) == "function" and getgenv().RedBeeDebug) or _G.RedBeeDebug then
+        print("[REDBEE] " .. line)
+    end
+    if not canWF then return end
+    traceBuf[#traceBuf+1] = line
+    if #traceBuf > 400 then table.remove(traceBuf, 1) end
+    if line:find("===", 1, true) or (os.clock() - traceAt) >= 1 then
+        traceAt = os.clock()
+        pcall(writefile, TRACE_FILE, table.concat(traceBuf, "\n"))
+    end
+end
+trace("=== Red Bee Hub Steal An Egg loaded ===")
+trace("=== BUILD: v64 - Red Bee Hub - anticheat active ===")
+
+-- ================================================================
+-- TOAST
+-- ================================================================
+local toast
+do
+    local q = {}
+    local steal = { pend = false, name = nil, pick = false, lastAt = -100 }
+    toast = function(m) q[#q+1] = tostring(m) end
+    function RedBeeStealDone(name, pick)
+        if name and tostring(name) ~= "egg" then steal.name = tostring(name) end
+        if pick then steal.pick = true end
+        if steal.pend or os.clock() - steal.lastAt < 6 then return end
+        steal.pend = true
+        task.delay(1.2, function()
+            local m = "Stole " .. (steal.name or "an egg")
+            if steal.pick then m = m .. " - pick your next one" end
+            q[#q+1] = m
+            steal.lastAt = os.clock()
+            steal.pend, steal.name, steal.pick = false, nil, false
+        end)
+    end
+    function RedBeePickPrompt(m)
+        if steal.pend then steal.pick = true return end
+        if os.clock() - steal.lastAt < 8 then return end
+        q[#q+1] = tostring(m)
+    end
+    local lastNote = {}
+    function RedBeeNote(key, m, cd)
+        local now = os.clock()
+        key = tostring(key)
+        if lastNote[key] and now - lastNote[key] < (cd or 60) then return end
+        lastNote[key] = now
+        for i = #q, 1, -1 do
+            if type(q[i]) == "table" and q[i].key == key then table.remove(q, i) end
+        end
+        q[#q+1] = { key = key, text = tostring(m) }
+    end
+    task.spawn(function()
+        local lastT, lastAt = nil, -100
+        while true do
+            if ((getgenv and getgenv().__RBG) or _G.__RBG) ~= GEN then return end
+            if #q > 0 then
+                task.wait(.35)
+                local item = q[#q]
+                table.clear(q)
+                local text = type(item) == "table" and tostring(item.text) or tostring(item)
+                if not (text == lastT and os.clock() - lastAt < 4) then
+                    lastT, lastAt = text, os.clock()
+                    pcall(function()
+                        if type(Window.Toast) == "function" then
+                            Window:Toast({ title = text, duration = 2.5,
+                                position = "Bottom", icon = 95108798243406 })
+                        else
+                            Window:Notify({ title = "Red Bee Hub", content = text,
+                                icon = "rbxassetid://95108798243406", duration = 3 })
+                        end
+                    end)
+                end
+            end
+            task.wait(.1)
+        end
+    end)
+end
+
+RedBeeTop.hideKey = UIS.InputBegan:Connect(function(i, gpe)
+    if gpe then return end
+    if i.KeyCode == Enum.KeyCode.RightShift then
+        pcall(function() Window:ToggleHide() end)
+    end
+end)
+
+-- ================================================================
+-- CONFIG
+-- ================================================================
+local TWEEN_SPEED = 800
+local K = {
+    WALKSPEED_SANE_MIN = 40, RELOC_COOLDOWN = 3, SNAP_MAX = 12,
+    MAX_SEG = 1500, MAX_STALL = 3, UNREACHABLE = 45,
+    CORRIDOR_X_MIN = 430, CORRIDOR_X_MAX = 5070,
+    CORRIDOR_Z_MIN = -455, CORRIDOR_Z_MAX = -285, CORRIDOR_Z = -370,
+    WALL_SAFE_Z_MIN = -425, WALL_SAFE_Z_MAX = -305,
+    GROUND_OFFSET = 3, SAFE_ARRIVE = 18, SAFE_ZONE_ARRIVE = 28,
+    SAFE_ZONE_X_MAX = 551, SAFE_ZONE_Z_MIN = -434, SAFE_ZONE_Z_MAX = -297,
+    SAFE_STAND_Y = 70.58,
+    PROMPT_CACHE = 3, PROMPT_NEAR = 12, PROMPT_WAIT = .6,
+    GRAB_CONFIRM = .14, GRAB_TRIES = 3,
+    GRAB_HOLD_MAX = 2.75, GRAB_HOLD_GRACE = .25,
+    EGG_TTL = 3, CARRY_FLOOR = 500, CARRY_RATIO = 2.4,
+    CARRY_HARD_MIN = 245, CARRY_SPEED_MIN = 150,
+    GUARD_CHASE_MULT = 4, PROTECT_INTERVAL = 6, CARRY_LOCK = 3,
+    ARC_SPEED = 1200, ARC_SPEED_NOSPOOF = 500, NOSPOOF_FLOOR = 120,
+    NOSPOOF_CONVERGE = 80, AC_SHORT_RATIO = 1.064, AC_SAFETY = .94,
+    AC_BIG = 10000000, AC_UNDO = 1.5,
+    ARC_ARRIVE = 5, ARC_MAX_DT = .05, ARC_MAX_FRAME = .25,
+    ARC_MAX_DEBT = 2, ARC_MAX_STEP = 20, ARC_CRUISE_UP = 18,
+    ARC_RAMP_FRAC = .12, ARC_RAMP_MIN = 40, ARC_RAMP_MAX = 220,
+    ARC_START_SPEED = .45, ARC_SPEED_RAMP = .28,
+    ARC_SLOW_RADIUS = 50, ARC_SLOW_SPEED = 260,
+    ARC_SPOOF_HEADROOM = 1.35, ARC_WS_MAX = 4000, ARC_DROP_SPEED = 400,
+    LEGAL_JUMP = 180, LEGAL_SETTLE = .12,
+    PRIME_TIMEOUT = 3, PRIME_HIT_WAIT = 4, PRIME_RETRIES = 3,
+    HOME_TTL = 30, DECOY_TTL = 25,
+    FLY_SPEED = 1200, FLY_CARRY_SPEED = 1000,
+    RIFT_POLL = 2.5, BOSS_TICK = .12, BOSS_POLL_FAST = 1, BOSS_POLL_IDLE = 10,
+    ESP_MAX = 250, ESP_REFRESH = .4,
+    MODEL_MOVE_SPEED = 430,
+}
+
+-- ================================================================
+-- STATE
+-- ================================================================
+local stealing = false
+local isProtecting = false
+local isMoving = false
+local carryLocked = false
+local heldEggUid, heldEggSlotKey = nil, nil
+local stealDelay = .15
+local selectedEggUid = nil
+local cachedEggs = {}
+local eggDropdown = nil
+local stolenUids = {}
+local stopProtect
+local moveGen = 0
+local cfMoveTo
+local protectThread = nil
+local stealThread = nil
+local noclipConn = nil
+local fieldHooked, ownerHooked = false, false
+local autoFeedEnabled = false
+local BX = {
+    unreachable = {}, noclipWhileCarrying = false,
+    routeOk = false, routeFail = nil, stalled = false,
+    activeTween = nil, activeTweenConn = nil, savedWalkSpeed = nil,
+    valueCache = {}, valueCacheNext = {},
+    acStates = {}, acState = nil, ownAt = 0, ownOk = nil, ownFail = 0,
+    SWAP_ATTR = "RBStealHum", lastGoodPos = nil,
+    carryNow = 500, carryCapped = false,
+    instantCarry = true, primeEnabled = true,
+    farmAreas = {}, farmRarities = {}, farmActive = false,
+    espOn = false, espPool = {},
+    riftOnly = false, riftAutoTrade = false,
+    autoDoff = true, followBest = false,
+    userFollowBest = nil,
+}
+env.__RBX = BX
+
+local function getChar() return LP.Character end
+local function getHRP() local c = getChar() return c and c:FindFirstChild("HumanoidRootPart") end
+local function getHum() local c = getChar() return c and c:FindFirstChildOfClass("Humanoid") end
+
+-- ================================================================
+-- NETWORK OWNERSHIP
+-- ================================================================
+function BX.claimOwner()
+    local h = getHRP() if not h then return false end
+    local n = os.clock()
+    if n - (BX.ownAt or 0) < .5 then return BX.ownOk == true end
+    BX.ownAt = n
+    local ok = false
+    pcall(function()
+        if typeof(setnetworkowner) == "function" then
+            setnetworkowner(h, true) ok = true
+        end
+    end)
+    if not ok then
+        pcall(function()
+            if typeof(sethiddenproperty) == "function" then
+                sethiddenproperty(h, "NetworkOwnershipAuto", false) ok = true
+            end
+        end)
+    end
+    BX.ownOk = ok
+    if ok then BX.ownFail = 0
+    else
+        BX.ownFail = (BX.ownFail or 0) + 1
+        if BX.ownFail == 3 then trace("ac: ownership claim failed 3x") end
+    end
+    return ok
+end
+
+-- ================================================================
+-- ANTICHEAT
+-- ================================================================
+local rigBlockConn = nil
+
+local function acOff()
+    pcall(function()
+        local ps = LP:FindFirstChild("PlayerScripts") if not ps then return end
+        for _, nm in ipairs({ "AntiCollision", "AntiCollisionClient",
+            "ObbyAntiTPClient", "AntiTP", "TeleportGuard" }) do
+            local s = ps:FindFirstChild(nm, true)
+            if s and s:IsA("BaseScript") and not s.Disabled then
+                s.Disabled = true
+                trace("ac: disabled " .. s.Name)
+            end
+        end
+    end)
+    pcall(function()
+        local Rem = require(RS.Shared.Remotes)
+        if Rem.RigSync and Rem.RigSync.Refresh and not rigBlockConn then
+            rigBlockConn = Rem.RigSync.Refresh.OnClientEvent:Connect(function(raw)
+                if tostring(raw):find("Relocate") then
+                    local h = getHRP()
+                    if h and BX.lastGoodPos then
+                        pcall(function()
+                            h.CFrame = CFrame.new(BX.lastGoodPos) * h.CFrame.Rotation
+                            h.AssemblyLinearVelocity = Vector3.zero
+                        end)
+                    end
+                end
+            end)
+            RedBeeTop.rigBlock = rigBlockConn
+        end
+    end)
+    pcall(function()
+        local Rem = require(RS.Shared.Remotes)
+        local gp = Rem and Rem.GuardPatrol
+        if not gp or type(hookfunction) ~= "function" then return end
+        for _, nm in ipairs({ "Hit", "Catch", "Report" }) do
+            local r = gp[nm]
+            if r and type(r.FireServer) == "function" then
+                local orig = r.FireServer
+                pcall(hookfunction, r.FireServer, function(self, ...)
+                    if heldEggUid then return end
+                    return orig(self, ...)
+                end)
+            end
+        end
+    end)
+    pcall(function()
+        if OwnerDropRE and type(hookfunction) == "function" and not ownerHooked then
+            local orig = OwnerDropRE.FireServer
+            OwnerDropRE.FireServer = function(self, ...)
+                if heldEggUid then return end
+                return orig(self, ...)
+            end
+            ownerHooked = true
+            trace("ac: hooked OwnerDropped")
+        end
+    end)
+    if FieldCarryRE and not fieldHooked and type(hookfunction) == "function" then
+        pcall(function()
+            local orig = FieldCarryRE.FireServer
+            FieldCarryRE.FireServer = function(self, ...)
+                BX.lastCarryFire = os.clock()
+                return orig(self, ...)
+            end
+            fieldHooked = true
+            trace("ac: hooked FieldEggCarry")
+        end)
+    end
+    trace("ac: bypass armed")
+end
+
+-- ================================================================
+-- ANTI RAGDOLL
+-- ================================================================
+local function isRag()
+    local h = getHum() if not h then return false end
+    if h.PlatformStand then return true end
+    local s = h:GetState()
+    return s == Enum.HumanoidStateType.Physics
+        or s == Enum.HumanoidStateType.Ragdoll
+        or s == Enum.HumanoidStateType.FallingDown
+end
+local function unrag()
+    local h = getHum()
+    if h then
+        pcall(function()
+            h.PlatformStand = false
+            h.Sit = false
+            h:ChangeState(Enum.HumanoidStateType.GettingUp)
+        end)
+    end
+end
+
+-- ================================================================
+-- EGGS
+-- ================================================================
+local function fmt(n)
+    n = tonumber(n) or 0
+    for _, u in ipairs({{1e12,"T"},{1e9,"B"},{1e6,"M"},{1e3,"K"}}) do
+        if n >= u[1] then
+            local v = n / u[1]
+            return ((v < 10) and string.format("%.2f", v) or
+                string.format("%.1f", v)):gsub("%.?0+$", "") .. u[2]
+        end
+    end
+    return tostring(math.round(n))
+end
+
+local function valOf(rec)
+    if BX.valueCache[rec.Uid] then
+        BX.valueCacheNext[rec.Uid] = BX.valueCache[rec.Uid]
+        return BX.valueCache[rec.Uid]
+    end
+    local item = { Category = rec.AssetCategory, Scale = tonumber(rec.AssetScale) or 1,
+        Mutations = rec.Mutations or {} }
+    local function keep(v)
+        v = tonumber(v) or 0
+        BX.valueCache[rec.Uid] = v
+        BX.valueCacheNext[rec.Uid] = v
+        return v
+    end
+    if Earnings then
+        local ok, r = pcall(Earnings.LiveRatePerSecond, item, nil, nil, LP)
+        if ok and type(r) == "number" then return keep(r) end
+        ok, r = pcall(Earnings.MutationOnlyRatePerSecond, item)
+        if ok and type(r) == "number" then return keep(r) end
+    end
+    local d = AD and AD[rec.AssetCategory]
+    if not d then return 0 end
+    local base = tonumber(d.EarningRate) or 0
+    local s = item.Scale
+    local sf = s <= 5 and s ^ 1.85 or (s / 5) ^ 1.2 * 19.637875755794113
+    local mm = 1
+    pcall(function() mm = Mutations.EarningsFor(item.Mutations) end)
+    return keep(math.max(1, math.round(base * sf * (tonumber(mm) or 1))))
+end
+
+local function nameOf(rec)
+    local d = AD and AD[rec.AssetCategory]
+    return d and d.DisplayName or rec.AssetCategory
+end
+
+local function rareOf(rec)
+    local d = AD and AD[rec.AssetCategory]
+    if d and d.Rarity then return d.Rarity.DisplayName or d.Rarity._id or "?" end
+    return "?"
+end
+
+function BX.farmAny(s)
+    for _ in pairs(s or {}) do return true end
+    return false
+end
+
+function BX.farmWanted(rec)
+    if not BX.farmActive then return true end
+    if BX.farmAny(BX.farmAreas) and not BX.farmAreas[tostring(rec.AreaId)] then return false end
+    if BX.farmAny(BX.farmRarities) and not BX.farmRarities[rareOf(rec)] then return false end
+    return true
+end
+
+function BX.snap(force)
+    local now = os.clock()
+    if not force and BX.rawSnap and (now - (BX.rawAt or 0)) < K.EGG_TTL then
+        return BX.rawSnap
+    end
+    local recs = {}
+    pcall(function()
+        local d = EggState.ReadFieldEggs and EggState.ReadFieldEggs()
+        if type(d) == "table" and type(d.Records) == "table" then
+            for _, r in ipairs(d.Records) do if r.Uid then recs[#recs+1] = r end end
+        end
+    end)
+    if #recs > 0 then
+        BX.rawSnap = { Records = recs }
+        BX.rawAt = now
+    end
+    return BX.rawSnap
+end
+
+local function evalEggs(force)
+    local now = os.clock()
+    if not force and BX.cache and (now - (BX.cacheAt or 0)) < K.EGG_TTL then
+        return BX.cache
+    end
+    local data = BX.snap(force)
+    if not (data and data.Records) then
+        BX.cache = BX.cache or {}
+        BX.cacheAt = now
+        return BX.cache
+    end
+    local nt = tick()
+    for u, a in pairs(stolenUids) do if nt - a > 120 then stolenUids[u] = nil end end
+    BX.valueCacheNext = {}
+    local out = {}
+    for _, rec in ipairs(data.Records) do
+        local grab = rec.State == "Slot" or rec.State == "Dropped"
+        local vis = grab or rec.State == "GuardCarried"
+        if stolenUids[rec.Uid] and (rec.State == "Slot" or rec.State == "Dropped"
+            or rec.State == "GuardCarried") then
+            stolenUids[rec.Uid] = nil
+        end
+        local mine = false
+        pcall(function() mine = SlotId.FirstAreaOwnerUserId(rec.Uid) == LP.UserId end)
+        if vis and not mine and not stolenUids[rec.Uid] and BX.farmWanted(rec)
+            and typeof(rec.BoundsCFrame) == "CFrame" then
+            out[#out+1] = {
+                uid = rec.Uid, grabbable = grab, dropped = rec.State == "Dropped",
+                guardHeld = rec.State == "GuardCarried",
+                name = nameOf(rec), area = rec.AreaId, rarity = rareOf(rec),
+                value = valOf(rec), pos = rec.BoundsCFrame.Position, rec = rec,
+            }
+        end
+    end
+    table.sort(out, function(a, b) return a.value > b.value end)
+    BX.valueCache = BX.valueCacheNext
+    BX.valueCacheNext = {}
+    BX.cache = out
+    BX.cacheAt = os.clock()
+    return out
+end
+
+-- ================================================================
+-- MOVEMENT
+-- ================================================================
+local function solidY(pos)
+    local pp = RaycastParams.new()
+    pp.FilterType = Enum.RaycastFilterType.Exclude
+    local ig = {}
+    local ch = getChar() if ch then ig[1] = ch end
+    pp.FilterDescendantsInstances = ig
+    pp.IgnoreWater = true
+    local o = pos + Vector3.new(0, 80, 0)
+    for _ = 1, 15 do
+        local r = workspace:Raycast(o, Vector3.new(0, -700, 0), pp)
+        if not r then return nil end
+        if r.Instance.CanCollide then return r.Position.Y + K.GROUND_OFFSET end
+        table.insert(ig, r.Instance)
+        pp.FilterDescendantsInstances = ig
+    end
+    return nil
+end
+
+local function enableNC()
+    if noclipConn then return end
+    local cached, cur = nil, nil
+    noclipConn = R.Stepped:Connect(function()
+        local ch = getChar() if not ch then return end
+        if cur ~= ch or not cached then
+            cached, cur = {}, ch
+            for _, p in ipairs(ch:GetDescendants()) do
+                if p:IsA("BasePart") then cached[#cached+1] = p end
+            end
+        end
+        for i = 1, #cached do
+            local p = cached[i]
+            if p.Parent and p.CanCollide then p.CanCollide = false end
+        end
+    end)
+    RedBeeTop.noclip = noclipConn
+end
+
+local function disableNC()
+    if noclipConn then pcall(function() noclipConn:Disconnect() end) noclipConn = nil end
+end
+
+function BX.arc(pos, speed, cancel)
+    local ch, h = getChar(), getHRP()
+    if not ch or not h or not pos then return end
+    local hm = getHum()
+    pcall(BX.claimOwner)
+    speed = math.max(speed or K.ARC_SPEED, 40)
+    local start = h.Position
+    local ft = Vector3.new(pos.X - start.X, 0, pos.Z - start.Z).Magnitude
+    if ft < 1 then return end
+    local sg = solidY(start) or start.Y
+    local eg = solidY(pos) or pos.Y
+    local cy = math.max(sg, eg, start.Y, pos.Y) + K.ARC_CRUISE_UP
+    local ramp = math.clamp(ft * K.ARC_RAMP_FRAC, K.ARC_RAMP_MIN, K.ARC_RAMP_MAX)
+    local wasPS = hm and hm.PlatformStand or false
+    if hm then hm.PlatformStand = true end
+    local dl = os.clock() + math.max(ft / speed, .3) * 3 + 6
+    local lastT = os.clock()
+    local debt = 0
+    while os.clock() < dl do
+        if cancel and cancel() then break end
+        local hh = getHRP() if not hh then break end
+        local now = os.clock()
+        local raw = now - lastT
+        lastT = now
+        debt = math.min((debt or 0) + raw, K.ARC_MAX_DEBT)
+        local fd = math.min(debt, K.ARC_MAX_FRAME)
+        debt = debt - fd
+        local sub = math.max(1, math.ceil(fd / K.ARC_MAX_DT))
+        local dt = fd / sub
+        local flat = Vector3.new(pos.X - hh.Position.X, 0, pos.Z - hh.Position.Z)
+        local rem = flat.Magnitude
+        if rem <= K.ARC_ARRIVE then break end
+        local dn = math.max(ft - rem, 0)
+        local wy
+        if dn < ramp then wy = start.Y + (cy - start.Y) * (dn / ramp)
+        elseif rem < ramp then wy = eg + (cy - eg) * (rem / ramp)
+        else wy = cy end
+        for _ = 1, sub do
+            local hp = hh.Position
+            local f2 = Vector3.new(pos.X - hp.X, 0, pos.Z - hp.Z)
+            local r2 = f2.Magnitude
+            if r2 <= K.ARC_ARRIVE then break end
+            local step = math.min(r2, speed * dt, K.ARC_MAX_STEP)
+            local nx = hp + f2.Unit * step
+            local dest = Vector3.new(nx.X, wy, nx.Z)
+            pcall(function()
+                if hm then hm:Move(Vector3.zero, false) end
+                ch:PivotTo(CFrame.lookAt(dest, dest + f2.Unit))
+                hh.AssemblyLinearVelocity = Vector3.zero
+                hh.AssemblyAngularVelocity = Vector3.zero
+            end)
+        end
+        R.Heartbeat:Wait()
+    end
+    if hm then hm.PlatformStand = wasPS end
+    local hz = getHRP()
+    if hz then hz.AssemblyLinearVelocity = Vector3.zero end
+end
+
+-- ================================================================
+-- CARRY
+-- ================================================================
+local pc, pa = nil, 0
+local function firePrompt()
+    if not fireproximityprompt then return false end
+    local h = getHRP() if not h then return false end
+    local now = os.clock()
+    if not pc or now - pa > K.PROMPT_CACHE then
+        local l = {}
+        for _, d in ipairs(Workspace:GetDescendants()) do
+            if d:IsA("ProximityPrompt") then
+                local t = string.lower(tostring(d.ActionText) .. " "
+                    .. tostring(d.ObjectText) .. " " .. d.Name)
+                if t:find("steal") or t:find("carry") then l[#l+1] = d end
+            end
+        end
+        pc, pa = l, now
+    end
+    local best, bd = nil, math.huge
+    for _, d in ipairs(pc) do
+        if d.Parent and d.Enabled then
+            local par = d.Parent
+            local p
+            if par:IsA("BasePart") then p = par.Position
+            elseif par:IsA("Model") then p = par:GetPivot().Position end
+            if p then
+                local dist = (h.Position - p).Magnitude
+                if dist <= d.MaxActivationDistance + 8 and dist < bd then
+                    best, bd = d, dist
+                end
+            end
+        end
+    end
+    if not best then return false end
+    pcall(function() best.HoldDuration = 0 best.RequiresLineOfSight = false end)
+    return pcall(function()
+        fireproximityprompt(best, 0)
+        fireproximityprompt(best)
+    end)
+end
+
+local function carry(uid, slot)
+    pcall(BX.claimOwner)
+    local got = false
+    if EggState.CarryFieldEgg then
+        local rp
+        pcall(function()
+            local r = EggState.ReadFieldEgg(uid)
+            rp = r and r.BoundsCFrame and r.BoundsCFrame.Position
+        end)
+        local h = getHRP()
+        if rp and h and (rp - h.Position).Magnitude <= 9 then
+            local ok, res = pcall(function()
+                return EggState.CarryFieldEgg(uid, slot)
+            end)
+            if ok and res == true then got = true end
+        end
+    end
+    if not got then
+        for _ = 1, K.GRAB_TRIES do
+            if got then break end
+            if firePrompt() then
+                local t0 = os.clock()
+                repeat
+                    local st
+                    pcall(function()
+                        local r = EggState.ReadFieldEgg(uid)
+                        st = r and r.State
+                    end)
+                    if st == "Carried" then got = true break end
+                    task.wait()
+                until os.clock() - t0 > K.GRAB_CONFIRM
+            end
+            task.wait(.03)
+        end
+    end
+    return got
+end
+
+-- ================================================================
+-- HOME + DELIVER
+-- ================================================================
+local function home()
+    if PS then
+        local ok, cf = pcall(function() return PS.FindRespawnCFrame() end)
+        if ok and typeof(cf) == "CFrame" then return cf.Position end
+    end
+    local sl = Workspace:FindFirstChildOfClass("SpawnLocation")
+    if sl and sl:IsA("BasePart") then return sl.Position end
+    return Vector3.new(512, 68, -362)
+end
+
+local function deliver()
+    if not heldEggUid then return end
+    local uid = heldEggUid
+    BX.arc(home(), K.CARRY_FLOOR, function() return heldEggUid == nil end)
+    task.wait(3)
+    local st
+    pcall(function()
+        local r = EggState.ReadFieldEgg(uid)
+        st = r and r.State
+    end)
+    if st ~= "Carried" then
+        RedBeeStealDone(nameOf({ AssetCategory = "egg" }))
+        if selectedEggUid == uid then
+            selectedEggUid = nil
+        end
+    else
+        toast("Delivery failed")
+    end
+    heldEggUid = nil
+end
+
+local function carrying()
+    local f
+    pcall(function()
+        local d = EggState.ReadFieldEggs and EggState.ReadFieldEggs()
+        for _, r in pairs(d and d.Records or {}) do
+            if r.State == "Carried" then f = r.Uid break end
+        end
+    end)
+    return f
+end
+
+function startProtect()
+    if protectThread then return end
+    protectThread = task.spawn(function()
+        while isProtecting do task.wait(K.PROTECT_INTERVAL) end
+    end)
+end
+
+function stopProtect()
+    isProtecting = false
+    if protectThread then pcall(task.cancel, protectThread) protectThread = nil end
+end
+
+-- ================================================================
+-- STEAL LOOP
+-- ================================================================
+local function stealLoop()
+    pcall(function()
+        if FieldCarryRE then
+            FieldCarryRE.OnClientEvent:Connect(function(s)
+                if typeof(s) == "table" and s.IsCarrying == false then
+                    heldEggUid = nil
+                    pcall(stopProtect)
+                    isProtecting = false
+                end
+            end)
+        end
+    end)
+    acOff()
+    local idle = 0
+    while stealing do
+        R.Heartbeat:Wait()
+        if not stealing then break end
+        if idle >= 8 then
+            idle = 0
+            BX.cache = nil
+            task.wait(4)
+            continue
+        end
+        local h = getHRP()
+        local hm = getHum()
+        if not h or not hm or hm.Health <= 0 then task.wait(1) continue end
+        if isRag() then unrag() task.wait(.1) end
+        local have = carrying()
+        if have then
+            heldEggUid = heldEggUid or have
+            deliver()
+            continue
+        end
+        cachedEggs = evalEggs(true)
+        if #cachedEggs == 0 then idle = idle + 1 task.wait(2) continue end
+        for u, a in pairs(BX.unreachable) do
+            if tick() - a > K.UNREACHABLE then BX.unreachable[u] = nil end
+        end
+        local target
+        if selectedEggUid then
+            for _, e in ipairs(cachedEggs) do
+                if e.uid == selectedEggUid then
+                    if e.grabbable then target = e end
+                    break
+                end
+            end
+        end
+        if not target and BX.followBest then
+            for _, e in ipairs(cachedEggs) do
+                if e.grabbable and not BX.unreachable[e.uid] then target = e break end
+            end
+        end
+        if not target then
+            for _, e in ipairs(cachedEggs) do
+                if e.grabbable then target = e break end
+            end
+        end
+        if not target then idle = idle + 1 task.wait(2) continue end
+        BX.arc(target.pos, K.ARC_SPEED)
+        if not stealing then break end
+        local isFirst = SlotId.LooksLikeFirstAreaUid(target.uid)
+        local slot = isFirst and SlotId.SlotKey(target.rec.AreaId, target.rec.NestId) or nil
+        if carry(target.uid, slot) then
+            idle = 0
+            stolenUids[target.uid] = tick()
+            heldEggUid = target.uid
+            heldEggSlotKey = slot
+            isProtecting = true
+            startProtect()
+            task.wait(.4)
+            deliver()
+        else
+            idle = idle + 1
+            BX.unreachable[target.uid] = tick()
+        end
+        task.wait(stealDelay)
+    end
+end
+
+-- ================================================================
+-- UI - HOME TAB
+-- ================================================================
+pcall(function()
+    Window:CreateTag({ title = "V6.4", color = Color3.fromRGB(240,70,90) })
+end)
+
+local HomeTab = Window:CreateTab({ name = "Home" })
+HomeTab:CreateSection({ name = "Discord" })
+HomeTab:CreateButton({
+    name = "Join Discord",
+    description = "discord.gg/9KSXyabAYV",
+    callback = function()
+        local inv = "https://discord.gg/9KSXyabAYV"
+        local cp = false
+        for _, f in pairs({ setclipboard, toclipboard, set_clipboard }) do
+            if type(f) == "function" and pcall(f, inv) then cp = true break end
+        end
+        pcall(function() game:GetService("GuiService"):OpenBrowserWindow(inv) end)
+        toast(cp and "Invite copied" or inv)
+    end,
+})
+HomeTab:CreateSection({ name = "Updates" })
+HomeTab:CreateText({
+    name = "Latest",
+    text = "V6.4\n"
+        .. "- Red Bee Hub rebrand\n"
+        .. "- Anticheat bypass enabled\n"
+        .. "- Network ownership claim on every move\n"
+        .. "- RigSync relocate pre-empt\n"
+        .. "- FieldEggCarry / OwnerDropped / GuardPatrol hooks live\n"
+        .. "\nV3\n"
+        .. "- Every Auto Steal teleports straight to the egg\n"
+        .. "- Auto refresh when night ends\n"
+        .. "- Farm keeps going instead of stopping after one egg\n"
+        .. "- Themes and a background image in Misc\n"
+        .. "- Less console spam, lighter on phones",
+})
+
+-- ================================================================
+-- UI - MAIN TAB
+-- ================================================================
+RedBeeSplash.step("Building Main", .7)
+local MainTab = Window:CreateTab({ name = "Main" })
+MainTab:CreateText({
+    name = "How it works",
+    text = "Pick an egg, turn on Auto Steal.",
+})
+
+local UI = { MAX = 60, map = {}, suppress = false, refreshing = false, lastSig = nil }
+
+local function eggLbl(e)
+    local s = ""
+    if e.guardHeld then s = "  (guard)" elseif e.dropped then s = "  (floor)" end
+    return e.name .. "  |  " .. fmt(e.value) .. "/s" .. s
+end
+
+local function buildOpts()
+    local o = {}
+    UI.map = {}
+    local used = {}
+    for i, e in ipairs(cachedEggs) do
+        if i > UI.MAX then break end
+        local l = eggLbl(e)
+        if used[l] then
+            used[l] = used[l] + 1
+            l = l .. ("  #%d"):format(used[l])
+        else used[l] = 1 end
+        UI.map[l] = e.uid
+        o[#o+1] = l
+    end
+    if #o == 0 then o[1] = "No eggs found" end
+    return o
+end
+
+local function findEgg(v)
+    if type(v) ~= "string" or v == "" or v == "No eggs found" then return nil end
+    local u = UI.map[v]
+    if u then
+        for _, e in ipairs(cachedEggs) do if e.uid == u then return e end end
+        return { uid = u, name = v }
+    end
+    return nil
+end
+
+function UI.onDropdown(v)
+    if UI.suppress then return end
+    if typeof(v) == "table" then v = v[1] end
+    local e = findEgg(v)
+    if not e then return end
+    selectedEggUid = e.uid
+    toast("Target: " .. e.name)
+end
+
+eggDropdown = MainTab:CreateDropdown({
+    name = "Target Egg",
+    options = { "Loading..." },
+    flag = "TargetEgg",
+    callback = UI.onDropdown,
+})
+
+local function applyOpts(o)
+    if not eggDropdown then return end
+    local sig = table.concat(o, "")
+    if sig == UI.lastSig then return end
+    UI.lastSig = sig
+    UI.suppress = true
+    pcall(function() eggDropdown:Refresh(o) end)
+    UI.suppress = false
+end
+
+local function showSel()
+    if not eggDropdown then return end
+    local l
+    for _, e in ipairs(cachedEggs) do
+        if e.uid == selectedEggUid then l = eggLbl(e) break end
+    end
+    if not l and cachedEggs[1] then
+        selectedEggUid = cachedEggs[1].uid
+        l = eggLbl(cachedEggs[1])
+    end
+    l = l or "No eggs found"
+    UI.suppress = true
+    pcall(function() eggDropdown:Set(l, true) end)
+    UI.suppress = false
+end
+
+local function refresh(force)
+    UI.refreshing = true
+    cachedEggs = evalEggs(force ~= false)
+    task.wait()
+    applyOpts(buildOpts())
+    if #cachedEggs > 0 and not selectedEggUid then
+        selectedEggUid = cachedEggs[1].uid
+    end
+    showSel()
+    UI.refreshing = false
+    return cachedEggs
+end
+
+MainTab:CreateButton({
+    name = "Refresh Eggs",
+    callback = function() refresh(true) toast(#cachedEggs .. " eggs") end,
+})
+
+local autoStealEl = MainTab:CreateToggle({
+    name = "Auto Steal",
+    flag = "AutoSteal",
+    callback = function(v)
+        v = v and true or false
+        if UI.refreshing or v == stealing then return end
+        stealing = v
+        if v then
+            stealThread = task.spawn(function()
+                refresh(true)
+                stealLoop()
+            end)
+            trace("autosteal: ON")
+            toast("Auto Steal ON")
+        else
+            if stealThread then pcall(task.cancel, stealThread) stealThread = nil end
+            disableNC()
+            stopProtect()
+            heldEggUid = nil
+            heldEggSlotKey = nil
+            carryLocked = false
+            trace("autosteal: OFF")
+            toast("Auto Steal OFF")
+        end
+    end,
+})
+
+MainTab:CreateSection({ name = "ESP" })
+MainTab:CreateToggle({
+    name = "Egg ESP",
+    description = "Shows every egg through walls (basic)",
+    value = false,
+    flag = "EggESP",
+    callback = function(v)
+        BX.espOn = v and true or false
+        toast("Egg ESP " .. (BX.espOn and "ON" or "OFF"))
+    end,
+})
+
+MainTab:CreateSection({ name = "Plot" })
+MainTab:CreateToggle({
+    name = "Stay off the treadmill",
+    value = true,
+    flag = "AutoDoff",
+    callback = function(v) BX.autoDoff = v and true or false end,
+})
+
+MainTab:CreateButton({
+    name = "Equip best pets",
+    callback = function()
+        local rf = net:FindFirstChild("RF/Haul/WearBest")
+        if not rf then toast("Remote missing") return end
+        local ok, res = pcall(function() return rf:InvokeServer() end)
+        toast(ok and res and "Equipped" or "Refused")
+    end,
+})
+
+-- ================================================================
+-- UI - FARM TAB
+-- ================================================================
+RedBeeSplash.step("Building Farm", .78)
+local FarmTab = Window:CreateTab({ name = "Farm" })
+FarmTab:CreateText({
+    name = "How it works",
+    text = "Pick what you want, then start Auto Steal HERE and it only takes those.",
+})
+
+FarmTab:CreateSection({ name = "Steal" })
+
+do
+    local AreasM = needM(RS, "Data", "Areas")
+    local areaNames = {}
+    if AreasM and AreasM.Directory then
+        for n in pairs(AreasM.Directory) do areaNames[#areaNames+1] = tostring(n) end
+    end
+    table.sort(areaNames)
+    if #areaNames == 0 then
+        areaNames = { "Abyss Ocean", "Cherry Blossom", "Cosmic", "Desert",
+            "Forest", "Jungle", "Lake", "Prehistoric", "Snow", "Titan Temple",
+            "Volcano" }
+    end
+    local rarityNames = {}
+    do
+        local seen, rows = {}, {}
+        for _, d in pairs(AD or {}) do
+            local r = d and d.Rarity
+            local nm = r and r.DisplayName
+            if nm and not seen[nm] then
+                seen[nm] = true
+                rows[#rows+1] = { nm = nm, num = tonumber(r.RarityNumber) or 0 }
+            end
+        end
+        table.sort(rows, function(a, b) return a.num < b.num end)
+        for _, r in ipairs(rows) do rarityNames[#rarityNames+1] = r.nm end
+    end
+    local function toSet(list)
+        local s = {}
+        if type(list) == "table" then
+            for _, v in pairs(list) do s[tostring(v)] = true end
+        end
+        return s
+    end
+    FarmTab:CreateDropdown({
+        name = "Areas", options = areaNames, multiSelect = true, flag = "FarmAreas",
+        callback = function(list)
+            BX.farmAreas = toSet(list)
+            BX.cache = nil
+            pcall(refresh, true)
+        end,
+    })
+    FarmTab:CreateDropdown({
+        name = "Rarities", options = rarityNames, multiSelect = true, flag = "FarmRarities",
+        callback = function(list)
+            BX.farmRarities = toSet(list)
+            BX.cache = nil
+            pcall(refresh, true)
+        end,
+    })
+end
+
+FarmTab:CreateButton({
+    name = "Refresh Eggs",
+    callback = function() refresh(true) toast(#cachedEggs .. " eggs") end,
+})
+
+local farmAutoEl = FarmTab:CreateToggle({
+    name = "Auto Steal",
+    description = "Same as Main, but only takes what you picked",
+    flag = "FarmAutoSteal",
+    callback = function(v)
+        v = v and true or false
+        BX.farmActive = v
+        BX.cache = nil
+        if autoStealEl then pcall(function() autoStealEl:Set(v) end) end
+    end,
+})
+
+task.spawn(function()
+    local wasStealing = false
+    while true do
+        task.wait(.2)
+        if env.__RBG ~= GEN then return end
+        if stealing and not wasStealing then
+            pcall(refresh, true)
+        end
+        wasStealing = stealing
+        if farmAutoEl then
+            pcall(function()
+                if X and X.farmShown ~= stealing then
+                    X = X or {}
+                    X.farmShown = stealing
+                    farmAutoEl:Set(stealing)
+                end
+            end)
+        end
+    end
+end)
+
+-- ================================================================
+-- UI - EVENT TAB
+-- ================================================================
+RedBeeSplash.step("Building Event", .84)
+local EventTab = Window:CreateTab({ name = "Event" })
+EventTab:CreateSection({ name = "Rift" })
+EventTab:CreateText({ name = "Rift", text = "reading..." })
+EventTab:CreateDropdown({
+    name = "Rift pet",
+    options = { "No pets spawned" },
+    flag = "RiftPet",
+    callback = function(v)
+        if typeof(v) == "table" then v = v[1] end
+        BX.riftPet = (v ~= "No pets spawned") and v or nil
+    end,
+})
+EventTab:CreateToggle({
+    name = "Auto steal rift pets",
+    value = false,
+    flag = "RiftAuto",
+    callback = function(v)
+        BX.riftOnly = v and true or false
+        if autoStealEl then pcall(function() autoStealEl:Set(BX.riftOnly) end) end
+    end,
+})
+
+-- ================================================================
+-- UI - MISC TAB
+-- ================================================================
+RedBeeSplash.step("Building Misc", .9)
+local MiscTab = Window:CreateTab({ name = "Misc" })
+MiscTab:CreateSection({ name = "Look" })
+MiscTab:CreateToggle({
+    name = "FPS Boost",
+    description = "Turns off effects and shadows",
+    value = true,
+    flag = "FpsBoost",
+    callback = function(v)
+        pcall(function()
+            if v then
+                Lighting.GlobalShadows = false
+                Lighting.FogEnd = 1e6
+                settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
+            end
+        end)
+    end,
+})
+
+MiscTab:CreateSection({ name = "Servers" })
+
+local function setClip(text)
+    for _, f in pairs({ setclipboard, toclipboard, set_clipboard }) do
+        if type(f) == "function" and pcall(f, text) then return true end
+    end
+    return false
+end
+
+MiscTab:CreateButton({
+    name = "Copy Job ID",
+    callback = function()
+        local id = tostring(game.JobId)
+        if id == "" then toast("No Job ID") return end
+        setClip(id)
+        toast("Job ID copied")
+    end,
+})
+
+MiscTab:CreateButton({
+    name = "Server Hop",
+    callback = function()
+        toast("Hopping...")
+        pcall(function()
+            game:GetService("TeleportService"):Teleport(game.PlaceId, LP)
+        end)
+    end,
+})
+
+-- ================================================================
+-- UI - CONFIG TAB
+-- ================================================================
+RedBeeSplash.step("Building Config", .95)
+local CfgTab = Window:CreateTab({ name = "Config" })
+CfgTab:CreateSection({ name = "Profiles" })
+CfgTab:CreateText({
+    name = "Info",
+    text = "Profiles save to RedBeeHub folder (executor-dependent).",
+})
+
+-- ================================================================
+-- KICK / SHUTDOWN WATCHER
+-- ================================================================
+task.spawn(function()
+    local lastLine
+    while true do
+        task.wait(2)
+        if env.__RBG ~= GEN then return end
+        local h = getHRP()
+        local pos = h and string.format("%.0f,%.0f,%.0f",
+            h.Position.X, h.Position.Y, h.Position.Z) or "?"
+        local line = ("pos %s stealing=%s carrying=%s")
+            :format(pos, tostring(stealing), tostring(heldEggUid ~= nil))
+        if line ~= lastLine then
+            lastLine = line
+            trace("[HB] " .. line)
+        end
+    end
+end)
+
+task.spawn(function()
+    while true do
+        task.wait(1)
+        if env.__RBG ~= GEN then return end
+        local closed = false
+        pcall(function() closed = Window.unloaded == true end)
+        if closed then
+            trace("=== shutdown ===")
+            stealing = false
+            pcall(stopProtect)
+            pcall(disableNC)
+            for _, v in pairs(BX) do
+                if typeof(v) == "RBXScriptConnection" then
+                    pcall(function() v:Disconnect() end)
+                end
+            end
+            env.__RBG = (tonumber(env.__RBG) or 0) + 1
+            return
+        end
+    end
+end)
+
+-- ================================================================
+-- AUTO REFRESH
+-- ================================================================
+task.spawn(function()
+    local lastCount, lastAt = nil, 0
+    while true do
+        task.wait(3)
+        if env.__RBG ~= GEN then return end
+        local n
+        pcall(function()
+            local d = EggState and EggState.ReadFieldEggs and EggState.ReadFieldEggs()
+            local c = 0
+            for _, rec in pairs(d and d.Records or {}) do
+                if rec.State == "Slot" or rec.State == "Dropped" then c = c + 1 end
+            end
+            n = c
+        end)
+        if n then
+            if lastCount == nil then lastCount = n
+            elseif n ~= lastCount then
+                local grew = n > lastCount
+                lastCount = n
+                if grew and (os.clock() - lastAt) > 15 then
+                    lastAt = os.clock()
+                    BX.cache = nil
+                    trace(("refresh: field grew to %d"):format(n))
+                    pcall(refresh, true)
+                end
+            end
+        end
+    end
+end)
+
+-- ================================================================
+-- START
+-- ================================================================
+task.spawn(function()
+    task.wait(1)
+    pcall(refresh, true)
+end)
+
+pcall(function()
+    local act = Window.minimiseAction
+    if act and type(act.callback) == "function" then
+        act.callback = function() Window:ToggleHide() end
+    end
+end)
+
+trace("ui: all tabs built")
+RedBeeSplash.step("Ready", 1)
+RedBeeSplash.done()
