@@ -1,0 +1,1767 @@
+-- RED BEE HUB 🐝 | Rayfield UI
+-- Converted from Obsidian
+
+local v1 = unpack or table.unpack
+if getgenv().RedBeeLoaded then
+    return
+end
+getgenv().RedBeeLoaded = true
+
+--// Clean up old instances
+for _, child in ipairs(game:GetService("CoreGui"):GetChildren()) do
+    local v4 = child
+    local v5 = v4:IsA("ScreenGui")
+    if v5 then
+        v5 = v4.Name:lower():match("redbee")
+        if not v5 then
+            v5 = v4.Name:lower():match("rayfield")
+        end
+    end
+    if v5 then
+        pcall(function() v4:Destroy() end)
+    end
+end
+
+--// Load Rayfield
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+--// Window
+local Window = Rayfield:CreateWindow({
+    Name = "RED BEE HUB",
+    Icon = 0,
+    LoadingTitle = "Red Bee Hub",
+    LoadingSubtitle = "by tawxm",
+    Theme = "Default",
+    ToggleUIKeybind = "K",
+    DisableRayfieldPrompts = false,
+    DisableBuildWarnings = false,
+    ConfigurationSaving = {
+        Enabled = true,
+        FolderName = nil,
+        FileName = "RedBeeHub"
+    },
+    Discord = {
+        Enabled = false,
+        Invite = "noinvitelink",
+        RememberJoins = true
+    },
+    KeySystem = false
+})
+
+--// Tabs
+local InfoTab = Window:CreateTab("Information", 0)
+local MainTab = Window:CreateTab("Main", 0)
+local AutoFarmTab = Window:CreateTab("Auto Farm", 0)
+local MiscTab = Window:CreateTab("Misc", 0)
+local PlayerTab = Window:CreateTab("Player", 0)
+local HelperTab = Window:CreateTab("Helper", 0)
+local ConfigTab = Window:CreateTab("Config", 0)
+
+local LocalPlayer = game:GetService("Players").LocalPlayer
+local t2 = {
+    AutoTalk = false,
+    AutoFarmCoin = false,
+    AutoUnclog = false,
+    AutoFuel = false,
+    AutoFeed = false,
+    AutoRadio = false,
+    AutoRepairOxy = false,
+    AutoRepairSeatBelt = false,
+    AutoRepairRadio = false,
+    AutoPickUpDelivery = false,
+    AutoRepairAutopilot = false,
+    AutoRepairPower = false,
+    AutoWakeUp = false,
+    AutoBreakIce = false,
+    AutoRepairEngine = false,
+    AutoReplay = false,
+    AutoExecuteReplay = false,
+    AntiCrash = false,
+    ShopItemSelect = "Flash Light",
+    SpeedToggle = false,
+    FlyToggle = false
+}
+local u27 = t2
+local t3 = {}
+
+--// Clipboard helper
+local _setclipboard = setclipboard or toclipboard or set_clipboard or (Clipboard and Clipboard.set)
+local v21 = _setclipboard
+
+--// Queue on teleport helper
+local _queue_on_teleport = queue_on_teleport or queueonteleport or (syn and syn.queue_on_teleport) or (fluxus and fluxus.queue_on_teleport) or queue_to_teleport
+local v24 = _queue_on_teleport
+
+--// Auto execute replay
+local function v30()
+    if v24 and u27.AutoExecuteReplay then
+        pcall(function()
+            v24([[                repeat task.wait(0.5) until game:IsLoaded()
+                if not getgenv().RedBeeLoaded then
+                    loadstring(game:HttpGet("https://raw.githubusercontent.com/tawxm/NgThanhTam/refs/heads/main/LandOrDie.lua"))()
+                end
+            ]])
+        end)
+    end
+end
+
+--// Toggle helper
+local function v31(tab, text, flag, default)
+    local toggle = tab:CreateToggle({
+        Name = text,
+        CurrentValue = default or false,
+        Flag = flag,
+        Callback = function(value)
+            u27[flag] = value
+        end
+    })
+    t3[flag] = toggle
+    return toggle
+end
+
+--// Notification helpers
+local function v41(p8, p9)
+    if not t5[p9] or os.time() - t5[p9] > 5 then
+        t5[p9] = os.time()
+        Rayfield:Notify({
+            Title = "Missing Item",
+            Content = "Missing Item: " .. p8,
+            Duration = 4
+        })
+    end
+end
+
+local function v42(p10)
+    local v65 = not t6[p10]
+    if not v65 then
+        v65 = os.time() - t6[p10] > 6
+    end
+    if v65 then
+        t6[p10] = os.time()
+        Rayfield:Notify({
+            Title = "Not Detected",
+            Content = "Not detected (" .. p10 .. ")",
+            Duration = 3
+        })
+    end
+end
+
+local function v43(p11)
+    Rayfield:Notify({
+        Title = "Done",
+        Content = p11 .. " completed!",
+        Duration = 3
+    })
+end
+
+--// Information tab
+InfoTab:CreateSection("Information")
+InfoTab:CreateButton({
+    Name = "Copy Discord Link",
+    Callback = function()
+        if v21 then
+            v21("https://discord.gg/jZWPfUjA8")
+            Rayfield:Notify({
+                Title = "Clipboard",
+                Content = "Copied Discord Link!",
+                Duration = 3
+            })
+        end
+    end
+})
+
+--// Utility functions
+local function v32()
+    local Plane = workspace:FindFirstChild("Plane")
+    if Plane then
+        local Seats = Plane:FindFirstChild("Seats")
+        local v71 = Seats
+        if Seats then
+            v71 = Seats:FindFirstChild("CopilotSeat")
+        end
+        if v71 then
+            return Seats.CopilotSeat
+        end
+        return Plane:FindFirstChild("CopilotSeat", true)
+    end
+    return nil
+end
+
+local function v33()
+    local PlayerGui = LocalPlayer:FindFirstChild("PlayerGui")
+    if not PlayerGui then return false end
+    for _, descendant in ipairs(PlayerGui:GetDescendants()) do
+        local v89 = descendant:IsA("TextLabel")
+        if v89 then
+            v89 = descendant.Visible and descendant.Text
+        end
+        if not v89 then continue end
+        local v90 = descendant.Text:lower()
+        local v91 = v90:find("fuel tank is full")
+        if not v91 then
+            v91 = v90:find("fuel tank is full!")
+        end
+        if v91 then return true end
+    end
+    return false
+end
+
+local function v34(p5)
+    local Character = LocalPlayer.Character
+    local v100 = Character
+    if Character then
+        v100 = Character:FindFirstChild("HumanoidRootPart")
+    end
+    if v100 then
+        if typeof(p5) == "CFrame" then
+            Character.HumanoidRootPart.CFrame = p5
+            return
+        end
+        if typeof(p5) == "Instance" then
+            if p5:IsA("BasePart") then
+                Character.HumanoidRootPart.CFrame = p5.CFrame * CFrame.new(0, 0.5, 1.2)
+                return
+            end
+            if p5:IsA("Model") then
+                local Pivot = p5:GetPivot()
+                Character.HumanoidRootPart.CFrame = Pivot * CFrame.new(0, 0.5, 1.2)
+            end
+        end
+    end
+end
+
+local function v35()
+    local Character = LocalPlayer.Character
+    if Character then
+        local Humanoid = Character:FindFirstChildOfClass("Humanoid")
+        if Humanoid then
+            Humanoid:UnequipTools()
+        end
+    end
+end
+
+local function u36(p6)
+    local Character = LocalPlayer.Character
+    if Character then
+        if Character:FindFirstChild(p6) then
+            return true
+        end
+        local Backpack = LocalPlayer:FindFirstChild("Backpack")
+        local v75 = Backpack and Backpack:FindFirstChild(p6)
+        local Humanoid = Character:FindFirstChildOfClass("Humanoid")
+        if v75 and Humanoid then
+            Humanoid:EquipTool(v75)
+            task.wait(0.2)
+            return true
+        end
+    end
+    return false
+end
+
+local function v38(p7)
+    return u36(p7)
+end
+
+local function v39()
+    local t4 = {"Sandwich","Sandwichs","SandWhich","SandWhichs","Food"}
+    local Character = LocalPlayer.Character
+    if Character then
+        for _, v in ipairs(t4) do
+            if Character:FindFirstChild(v) then
+                return true
+            end
+        end
+    end
+    for _, v in ipairs(t4) do
+        if u36(v) then
+            return true
+        end
+    end
+    return false
+end
+
+local function v40()
+    local Character = LocalPlayer.Character
+    if not Character then return false end
+    for _, child in ipairs(Character:GetChildren()) do
+        local v80 = child:IsA("Tool")
+        if v80 then
+            v80 = child.Name:lower():find("fuel")
+            if not v80 then
+                v80 = child.Name:lower():find("gas")
+            end
+        end
+        if v80 then return true end
+    end
+    local Backpack = LocalPlayer:FindFirstChild("Backpack")
+    if Backpack then
+        for _, child in ipairs(Backpack:GetChildren()) do
+            local v84 = child:IsA("Tool")
+            if v84 then
+                v84 = child.Name:lower():find("fuel")
+                if not v84 then
+                    v84 = child.Name:lower():find("gas")
+                end
+            end
+            if not v84 then continue end
+            local Humanoid = Character:FindFirstChildOfClass("Humanoid")
+            if Humanoid then
+                Humanoid:EquipTool(child)
+                task.wait(0.3)
+                return true
+            end
+        end
+    end
+    return false
+end
+
+local t5 = {}
+local t6 = {}
+
+local function v44()
+    pcall(function()
+        local FoodCrate = workspace:WaitForChild("Plane"):WaitForChild("FoodCrate"):WaitForChild("FoodCrate")
+        if FoodCrate then
+            local Character = LocalPlayer.Character
+            local v213 = Character and Character:FindFirstChild("HumanoidRootPart")
+            if v213 then
+                v213.CFrame = (FoodCrate:IsA("Model") and FoodCrate:GetPivot() or FoodCrate.CFrame) * CFrame.new(0, 0.5, 1.2)
+                task.wait(0.2)
+                game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("TooltipAction"):FireServer("Take Food", FoodCrate)
+            end
+        end
+    end)
+end
+
+--// Helper tab
+HelperTab:CreateSection("Feature Search")
+HelperTab:CreateInput({
+    Name = "Search & Toggle Feature",
+    CurrentValue = "",
+    PlaceholderText = "Type feature (e.g. Talk, Fuel, Oxy)...",
+    RemoveTextAfterFocusLost = false,
+    Callback = function(p12)
+        if not p12 or p12 == "" then return end
+        local v115 = p12:lower():gsub("%s+", "")
+        local v116 = false
+        local v117, v118, v119 = pairs(t3)
+        local g121
+        local v120
+        repeat
+            v119, v120 = v117(v118, v119)
+            if not v119 then g121 = true end
+            if g121 then break end
+        until v119:lower():gsub("%s+", ""):find(v115)
+        if not g121 then
+            v120:Set(true)
+            v116 = true
+            Rayfield:Notify({
+                Title = "Helper",
+                Content = "Activated: " .. v119,
+                Duration = 3
+            })
+        end
+        g121 = false
+        if not v116 then
+            Rayfield:Notify({
+                Title = "Helper",
+                Content = "No matching feature found for: " .. p12,
+                Duration = 3
+            })
+        end
+    end
+})
+
+--// Main tab - Automatic
+MainTab:CreateSection("Automatic")
+v31(MainTab, "Auto Talk Passengers", "AutoTalk")
+v31(MainTab, "Auto Unclog Toilet", "AutoUnclog")
+v31(MainTab, "Auto Fuel", "AutoFuel")
+v31(MainTab, "Auto Feed", "AutoFeed")
+v31(MainTab, "Auto Radio", "AutoRadio")
+v31(MainTab, "Auto Repair Oxy", "AutoRepairOxy")
+v31(MainTab, "Auto Repair SeatBelt", "AutoRepairSeatBelt")
+v31(MainTab, "Auto Repair Radio", "AutoRepairRadio")
+v31(MainTab, "Auto Pick Up Delivery", "AutoPickUpDelivery")
+v31(MainTab, "Auto Repair Autopilot", "AutoRepairAutopilot")
+v31(MainTab, "Auto Repair Power", "AutoRepairPower")
+v31(MainTab, "Auto Wake Up", "AutoWakeUp")
+v31(MainTab, "Auto Break Ice", "AutoBreakIce")
+v31(MainTab, "Auto Repair Engine", "AutoRepairEngine")
+
+--// Auto Farm tab
+AutoFarmTab:CreateSection("Auto Farm")
+v31(AutoFarmTab, "Auto Farm (Coin)", "AutoFarmCoin")
+
+--// Misc tab - Engine
+MiscTab:CreateSection("Engine")
+MiscTab:CreateButton({
+    Name = "On/Off Engine 1",
+    Callback = function()
+        pcall(function()
+            local t7 = {"Engine 1", workspace:WaitForChild("Plane"):WaitForChild("Cockpit"):WaitForChild("Engine 1")}
+            local TooltipAction = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("TooltipAction")
+            TooltipAction:FireServer(v1(t7))
+        end)
+    end
+})
+MiscTab:CreateButton({
+    Name = "On/Off Engine 2",
+    Callback = function()
+        pcall(function()
+            local t9 = {"Engine 2", workspace:WaitForChild("Plane"):WaitForChild("Cockpit"):WaitForChild("Engine 2")}
+            game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("TooltipAction"):FireServer(unpack(t9))
+        end)
+    end
+})
+
+--// Misc tab - Landing Gear
+MiscTab:CreateSection("Landing Gear")
+MiscTab:CreateButton({
+    Name = "Down/Up Gear",
+    Callback = function()
+        pcall(function()
+            local t10 = {"Landing Gear", workspace:WaitForChild("Plane"):WaitForChild("Cockpit"):WaitForChild("LandingGear")}
+            local TooltipAction = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("TooltipAction")
+            TooltipAction:FireServer(v1(t10))
+        end)
+    end
+})
+
+--// Main tab - Special Button
+MainTab:CreateSection("Special Button")
+MainTab:CreateButton({
+    Name = "On/Off Oxygen",
+    Callback = function()
+        pcall(function()
+            game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("TooltipAction"):FireServer("Oxygen", workspace:WaitForChild("Plane"):WaitForChild("Cockpit"):WaitForChild("OxygenButton"))
+        end)
+    end
+})
+MainTab:CreateButton({
+    Name = "On/Off Red Alert",
+    Callback = function()
+        pcall(function()
+            game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("TooltipAction"):FireServer("Red Alert", workspace:WaitForChild("Plane"):WaitForChild("Cockpit"):WaitForChild("Red Alert"))
+        end)
+    end
+})
+MainTab:CreateButton({
+    Name = "On/Off Cabin Light",
+    Callback = function()
+        pcall(function()
+            game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("TooltipAction"):FireServer("Cabin Lights", workspace:WaitForChild("Plane"):WaitForChild("Cockpit"):WaitForChild("Cabin Lights"))
+        end)
+    end
+})
+MainTab:CreateButton({
+    Name = "On/Off Window Wipers",
+    Callback = function()
+        pcall(function()
+            game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("TooltipAction"):FireServer("Window Wipers", workspace:WaitForChild("Plane"):WaitForChild("Cockpit"):WaitForChild("Window Wipers"))
+        end)
+    end
+})
+MainTab:CreateButton({
+    Name = "On/Off Headlight",
+    Callback = function()
+        pcall(function()
+            game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("TooltipAction"):FireServer("Headlights", workspace:WaitForChild("Plane"):WaitForChild("Cockpit"):WaitForChild("LandingLightsPanel"))
+        end)
+    end
+})
+MainTab:CreateButton({
+    Name = "On/Off Navigation Light",
+    Callback = function()
+        pcall(function()
+            game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("TooltipAction"):FireServer("Navigation Lights", workspace:WaitForChild("Plane"):WaitForChild("Cockpit"):WaitForChild("NavLightsPanel"))
+        end)
+    end
+})
+
+--// Main tab - Shop & Items
+MainTab:CreateSection("Shop & Items")
+MainTab:CreateButton({
+    Name = "Take Food",
+    Callback = function() v44() end
+})
+local t12 = {
+    ["Flash Light"] = "flashlight",
+    ["Food Crate"] = "food_crate",
+    Plunger = "plunger",
+    Camera = "camera",
+    ["Fire Extinguisher"] = "fire_extinguisher",
+    ["Energy Drink"] = "energy_drink",
+    Wrench = "wrench",
+    ["Small Fuel Can"] = "small_fuel",
+    Bandage = "bandage",
+    ["Large Fuel Can"] = "large_fuel",
+    Medkit = "medkit",
+    ["Baseball Bat"] = "baseball_bat",
+    ["Flare Gun"] = "flare_gun",
+    ["Toy Hammer"] = "toy_hammer",
+    ["Ray Gun"] = "ray_gun"
+}
+MainTab:CreateDropdown({
+    Name = "Select Shop Item",
+    Options = {"Flash Light","Food Crate","Plunger","Camera","Fire Extinguisher","Energy Drink","Wrench","Small Fuel Can","Bandage","Large Fuel Can","Medkit","Baseball Bat","Flare Gun","Toy Hammer","Ray Gun"},
+    CurrentOption = "Flash Light",
+    Callback = function(p13)
+        u27.ShopItemSelect = p13
+    end
+})
+MainTab:CreateButton({
+    Name = "Buy Selected Item",
+    Callback = function()
+        pcall(function()
+            game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("TabletShopPurchase"):FireServer(t12[u27.ShopItemSelect], "miles")
+        end)
+    end
+})
+
+--// Main tab - System
+MainTab:CreateSection("System")
+t3.AutoReplay = MainTab:CreateToggle({
+    Name = "Auto Replay",
+    CurrentValue = false,
+    Flag = "AutoReplay",
+    Callback = function(p14) u27.AutoReplay = p14 end
+})
+t3.AutoExecuteReplay = MainTab:CreateToggle({
+    Name = "Auto Execute when replay",
+    CurrentValue = false,
+    Flag = "AutoExecuteReplay",
+    Callback = function(p15)
+        u27.AutoExecuteReplay = p15
+        if p15 then v30() end
+    end
+})
+t3.AntiCrash = MainTab:CreateToggle({
+    Name = "Anti Crash",
+    CurrentValue = false,
+    Flag = "AntiCrash",
+    Callback = function(p16) u27.AntiCrash = p16 end
+})
+
+--// Player tab - Movement Options
+PlayerTab:CreateSection("Movement Options")
+local n1 = 16
+t3.SpeedToggle = PlayerTab:CreateToggle({
+    Name = "Speed",
+    CurrentValue = false,
+    Flag = "SpeedToggle",
+    Callback = function(p17)
+        u27.SpeedToggle = p17
+        if not p17 then
+            pcall(function()
+                local Character = LocalPlayer.Character
+                if Character then
+                    Character = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+                end
+                if Character then
+                    LocalPlayer.Character:FindFirstChildOfClass("Humanoid").WalkSpeed = 16
+                end
+            end)
+        end
+    end
+})
+PlayerTab:CreateInput({
+    Name = "Speed Amount",
+    CurrentValue = "16",
+    PlaceholderText = "Enter speed value...",
+    RemoveTextAfterFocusLost = false,
+    Callback = function(p18)
+        local num = tonumber(p18)
+        if num then n1 = num end
+    end
+})
+task.spawn(function()
+    while true do
+        task.wait(0.1)
+        if u27.SpeedToggle then
+            pcall(function()
+                local Character = LocalPlayer.Character
+                if Character then
+                    Character = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+                end
+                if Character then
+                    LocalPlayer.Character:FindFirstChildOfClass("Humanoid").WalkSpeed = n1
+                end
+            end)
+        end
+    end
+end)
+
+--// Fly GUI (unchanged)
+local u54
+local u53 = false
+local function u55()
+    u53 = false
+    pcall(function()
+        local Character = LocalPlayer.Character
+        if Character and Character:FindFirstChildOfClass("Humanoid") then
+            local Humanoid = Character:FindFirstChildOfClass("Humanoid")
+            Humanoid:SetStateEnabled(Enum.HumanoidStateType.Climbing, true)
+            Humanoid:SetStateEnabled(Enum.HumanoidStateType.FallingDown, true)
+            Humanoid:SetStateEnabled(Enum.HumanoidStateType.Flying, true)
+            Humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, true)
+            Humanoid:SetStateEnabled(Enum.HumanoidStateType.GettingUp, true)
+            Humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, true)
+            Humanoid:SetStateEnabled(Enum.HumanoidStateType.Landed, true)
+            Humanoid:SetStateEnabled(Enum.HumanoidStateType.Physics, true)
+            Humanoid:SetStateEnabled(Enum.HumanoidStateType.PlatformStanding, true)
+            Humanoid:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, true)
+            Humanoid:SetStateEnabled(Enum.HumanoidStateType.Running, true)
+            Humanoid:SetStateEnabled(Enum.HumanoidStateType.RunningNoPhysics, true)
+            Humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
+            Humanoid:SetStateEnabled(Enum.HumanoidStateType.StrafingNoPhysics, true)
+            Humanoid:SetStateEnabled(Enum.HumanoidStateType.Swimming, true)
+            Humanoid:ChangeState(Enum.HumanoidStateType.RunningNoPhysics)
+            Humanoid.PlatformStand = false
+        end
+        local v225 = Character
+        if Character then
+            v225 = Character:FindFirstChild("Animate")
+        end
+        if v225 then
+            Character.Animate.Disabled = false
+        end
+    end)
+end
+
+local function v56()
+    if u54 then u54:Destroy() end
+    local ScreenGui = Instance.new("ScreenGui")
+    local Frame = Instance.new("Frame")
+    local TextButton = Instance.new("TextButton")
+    local TextButton2 = Instance.new("TextButton")
+    local TextButton3 = Instance.new("TextButton")
+    local TextLabel = Instance.new("TextLabel")
+    local TextButton4 = Instance.new("TextButton")
+    local TextLabel2 = Instance.new("TextLabel")
+    local TextButton5 = Instance.new("TextButton")
+    local TextButton6 = Instance.new("TextButton")
+    local TextButton7 = Instance.new("TextButton")
+    local TextButton8 = Instance.new("TextButton")
+    ScreenGui.Name = "main"
+    ScreenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+    ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    ScreenGui.ResetOnSpawn = false
+    Frame.Parent = ScreenGui
+    Frame.BackgroundColor3 = Color3.fromRGB(30, 5, 5)
+    Frame.BorderColor3 = Color3.fromRGB(255, 190, 0)
+    Frame.Position = UDim2.new(0.100320168, 0, 0.379746825, 0)
+    Frame.Size = UDim2.new(0, 190, 0, 57)
+    TextButton.Name = "up"
+    TextButton.Parent = Frame
+    TextButton.BackgroundColor3 = Color3.fromRGB(200, 30, 30)
+    TextButton.Size = UDim2.new(0, 44, 0, 28)
+    TextButton.Font = Enum.Font.SourceSans
+    TextButton.Text = "UP"
+    TextButton.TextColor3 = Color3.fromRGB(255, 220, 200)
+    TextButton.TextSize = 14
+    TextButton2.Name = "down"
+    TextButton2.Parent = Frame
+    TextButton2.BackgroundColor3 = Color3.fromRGB(140, 20, 20)
+    TextButton2.Position = UDim2.new(0, 0, 0.491228074, 0)
+    TextButton2.Size = UDim2.new(0, 44, 0, 28)
+    TextButton2.Font = Enum.Font.SourceSans
+    TextButton2.Text = "DOWN"
+    TextButton2.TextColor3 = Color3.fromRGB(255, 220, 200)
+    TextButton2.TextSize = 14
+    TextButton3.Name = "onof"
+    TextButton3.Parent = Frame
+    TextButton3.BackgroundColor3 = Color3.fromRGB(255, 190, 0)
+    TextButton3.Position = UDim2.new(0.702823281, 0, 0.491228074, 0)
+    TextButton3.Size = UDim2.new(0, 56, 0, 28)
+    TextButton3.Font = Enum.Font.SourceSans
+    TextButton3.Text = "fly"
+    TextButton3.TextColor3 = Color3.fromRGB(30, 5, 5)
+    TextButton3.TextSize = 14
+    TextLabel.Parent = Frame
+    TextLabel.BackgroundColor3 = Color3.fromRGB(50, 8, 8)
+    TextLabel.Position = UDim2.new(0.469327301, 0, 0, 0)
+    TextLabel.Size = UDim2.new(0, 100, 0, 28)
+    TextLabel.Font = Enum.Font.SourceSans
+    TextLabel.Text = "RED BEE FLY"
+    TextLabel.TextColor3 = Color3.fromRGB(255, 190, 0)
+    TextLabel.TextScaled = true
+    TextLabel.TextSize = 14
+    TextLabel.TextWrapped = true
+    TextButton4.Name = "plus"
+    TextButton4.Parent = Frame
+    TextButton4.BackgroundColor3 = Color3.fromRGB(255, 190, 0)
+    TextButton4.Position = UDim2.new(0.231578946, 0, 0, 0)
+    TextButton4.Size = UDim2.new(0, 45, 0, 28)
+    TextButton4.Font = Enum.Font.SourceSans
+    TextButton4.Text = "+"
+    TextButton4.TextColor3 = Color3.fromRGB(30, 5, 5)
+    TextButton4.TextScaled = true
+    TextButton4.TextSize = 14
+    TextButton4.TextWrapped = true
+    TextLabel2.Name = "speed"
+    TextLabel2.Parent = Frame
+    TextLabel2.BackgroundColor3 = Color3.fromRGB(120, 20, 20)
+    TextLabel2.Position = UDim2.new(0.468421042, 0, 0.491228074, 0)
+    TextLabel2.Size = UDim2.new(0, 44, 0, 28)
+    TextLabel2.Font = Enum.Font.SourceSans
+    TextLabel2.Text = "1"
+    TextLabel2.TextColor3 = Color3.fromRGB(255, 220, 200)
+    TextLabel2.TextScaled = true
+    TextLabel2.TextSize = 14
+    TextLabel2.TextWrapped = true
+    TextButton5.Name = "mine"
+    TextButton5.Parent = Frame
+    TextButton5.BackgroundColor3 = Color3.fromRGB(255, 190, 0)
+    TextButton5.Position = UDim2.new(0.231578946, 0, 0.491228074, 0)
+    TextButton5.Size = UDim2.new(0, 45, 0, 29)
+    TextButton5.Font = Enum.Font.SourceSans
+    TextButton5.Text = "-"
+    TextButton5.TextColor3 = Color3.fromRGB(30, 5, 5)
+    TextButton5.TextScaled = true
+    TextButton5.TextSize = 14
+    TextButton5.TextWrapped = true
+    TextButton6.Name = "Close"
+    TextButton6.Parent = ScreenGui.Frame
+    TextButton6.BackgroundColor3 = Color3.fromRGB(160, 10, 10)
+    TextButton6.Font = "SourceSans"
+    TextButton6.Size = UDim2.new(0, 45, 0, 28)
+    TextButton6.Text = "X"
+    TextButton6.TextColor3 = Color3.fromRGB(255, 220, 200)
+    TextButton6.TextSize = 30
+    TextButton6.Position = UDim2.new(0, 0, -1, 27)
+    TextButton7.Name = "minimize"
+    TextButton7.Parent = ScreenGui.Frame
+    TextButton7.BackgroundColor3 = Color3.fromRGB(90, 15, 15)
+    TextButton7.Font = "SourceSans"
+    TextButton7.Size = UDim2.new(0, 45, 0, 28)
+    TextButton7.Text = "-"
+    TextButton7.TextColor3 = Color3.fromRGB(255, 220, 200)
+    TextButton7.TextSize = 40
+    TextButton7.Position = UDim2.new(0, 44, -1, 27)
+    TextButton8.Name = "minimize2"
+    TextButton8.Parent = ScreenGui.Frame
+    TextButton8.BackgroundColor3 = Color3.fromRGB(90, 15, 15)
+    TextButton8.Font = "SourceSans"
+    TextButton8.Size = UDim2.new(0, 45, 0, 28)
+    TextButton8.Text = "+"
+    TextButton8.TextColor3 = Color3.fromRGB(255, 220, 200)
+    TextButton8.TextSize = 40
+    TextButton8.Position = UDim2.new(0, 44, -1, 57)
+    TextButton8.Visible = false
+    local n2 = 1
+    local LocalPlayer2 = game:GetService("Players").LocalPlayer
+    pcall(function()
+        Rayfield:Notify({
+            Title = "RED BEE FLY",
+            Content = "red bee on top",
+            Duration = 5
+        })
+    end)
+    Frame.Active = true
+    Frame.Draggable = true
+    TextButton3.MouseButton1Down:Connect(function()
+        if u53 == true then
+            u53 = false
+            u55()
+        else
+            u53 = true
+            for _ = 1, n2 do
+                task.spawn(function()
+                    local Heartbeat = game:GetService("RunService").Heartbeat
+                    tpwalking = true
+                    local Character = game.Players.LocalPlayer.Character
+                    local v284 = Character
+                    if Character then
+                        v284 = Character:FindFirstChildWhichIsA("Humanoid")
+                    end
+                    while true do
+                        local _tpwalking = tpwalking
+                        if _tpwalking then
+                            _tpwalking = Heartbeat:Wait()
+                            if _tpwalking then
+                                _tpwalking = Character
+                                if Character then
+                                    _tpwalking = v284 and v284.Parent
+                                end
+                            end
+                        end
+                        if not _tpwalking then break end
+                        if v284.MoveDirection.Magnitude > 0 then
+                            Character:TranslateBy(v284.MoveDirection)
+                        end
+                    end
+                end)
+            end
+            local Character = game.Players.LocalPlayer.Character
+            if Character then
+                Character = game.Players.LocalPlayer.Character:FindFirstChild("Animate")
+            end
+            if Character then
+                game.Players.LocalPlayer.Character.Animate.Disabled = true
+            end
+            local Character2 = game.Players.LocalPlayer.Character
+            if Character2 then
+                local Humanoid = Character2:FindFirstChildOfClass("Humanoid")
+                if not Humanoid then
+                    Humanoid = Character2:FindFirstChildOfClass("AnimationController")
+                end
+                Character2 = Humanoid
+            end
+            if Character2 then
+                local _next = next
+                local v231, v232 = Character2:GetPlayingAnimationTracks()
+                while true do
+                    local v233
+                    v232, v233 = _next(v231, v232)
+                    if not v232 then break end
+                    v233:AdjustSpeed(0)
+                end
+            end
+            local Character3 = LocalPlayer2.Character
+            if Character3 then
+                Character3 = LocalPlayer2.Character:FindFirstChild("Humanoid")
+            end
+            if Character3 then
+                LocalPlayer2.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Climbing, false)
+                LocalPlayer2.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
+                LocalPlayer2.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Flying, false)
+                LocalPlayer2.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, false)
+                LocalPlayer2.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.GettingUp, false)
+                LocalPlayer2.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, false)
+                LocalPlayer2.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Landed, false)
+                LocalPlayer2.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Physics, false)
+                LocalPlayer2.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.PlatformStanding, false)
+                LocalPlayer2.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, false)
+                LocalPlayer2.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Running, false)
+                LocalPlayer2.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.RunningNoPhysics, false)
+                LocalPlayer2.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
+                LocalPlayer2.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.StrafingNoPhysics, false)
+                LocalPlayer2.Character.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Swimming, false)
+                LocalPlayer2.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Swimming)
+            end
+        end
+        local Character = game:GetService("Players").LocalPlayer.Character
+        if Character then
+            Character = game:GetService("Players").LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+            if Character then
+                Character = game:GetService("Players").LocalPlayer.Character:FindFirstChildOfClass("Humanoid").RigType == Enum.HumanoidRigType.R6
+            end
+        end
+        if Character then
+            local LocalPlayer3 = game.Players.LocalPlayer
+            local Character4 = LocalPlayer3.Character
+            if Character4 then
+                Character4 = LocalPlayer3.Character:FindFirstChild("Torso")
+            end
+            if not Character4 then return end
+            local t13 = {f = 0, b = 0, l = 0, r = 0}
+            local t14 = {f = 0, b = 0, l = 0, r = 0}
+            local n3 = 0
+            local n4 = 50
+            local BodyGyro = Instance.new("BodyGyro", Character4)
+            BodyGyro.P = 90000
+            BodyGyro.maxTorque = Vector3.new(9000000000, 9000000000, 9000000000)
+            BodyGyro.cframe = Character4.CFrame
+            local BodyVelocity = Instance.new("BodyVelocity", Character4)
+            BodyVelocity.velocity = Vector3.new(0, 0.1, 0)
+            BodyVelocity.maxForce = Vector3.new(9000000000, 9000000000, 9000000000)
+            if u53 == true then
+                LocalPlayer3.Character.Humanoid.PlatformStand = true
+            end
+            while true do
+                local v244 = u53 == true
+                if not v244 then
+                    v244 = game:GetService("Players").LocalPlayer.Character
+                    if v244 then
+                        v244 = game:GetService("Players").LocalPlayer.Character:FindFirstChild("Humanoid")
+                        if v244 then
+                            v244 = game:GetService("Players").LocalPlayer.Character.Humanoid.Health == 0
+                        end
+                    end
+                end
+                if not v244 then break end
+                game:GetService("RunService").RenderStepped:Wait()
+                local v245 = t13.l + t13.r ~= 0
+                if not v245 then
+                    v245 = t13.f + t13.b ~= 0
+                end
+                if v245 then
+                    n3 = n3 + 0.5 + n3 / n4
+                    if n4 < n3 then
+                        n3 = n4
+                    end
+                else
+                    local v246 = t13.l + t13.r ~= 0
+                    if not v246 then
+                        v246 = t13.f + t13.b ~= 0
+                    end
+                    if not v246 and n3 ~= 0 then
+                        n3 -= 1
+                        if n3 < 0 then n3 = 0 end
+                    end
+                end
+                local v247 = t13.l + t13.r ~= 0
+                if not v247 then
+                    v247 = t13.f + t13.b ~= 0
+                end
+                if v247 then
+                    BodyVelocity.velocity = (game.Workspace.CurrentCamera.CoordinateFrame.lookVector * (t13.f + t13.b) + (game.Workspace.CurrentCamera.CoordinateFrame * CFrame.new(t13.l + t13.r, (t13.f + t13.b) * 0.2, 0).p - game.Workspace.CurrentCamera.CoordinateFrame.p)) * n3
+                    local f = t13.f
+                    local b = t13.b
+                    local l = t13.l
+                    local r = t13.r
+                    t14 = {f = f, b = b, l = l, r = r}
+                else
+                    local v252 = t13.l + t13.r == 0
+                    if v252 then
+                        v252 = t13.f + t13.b == 0 and n3 ~= 0
+                    end
+                    if v252 then
+                        BodyVelocity.velocity = (game.Workspace.CurrentCamera.CoordinateFrame.lookVector * (t14.f + t14.b) + (game.Workspace.CurrentCamera.CoordinateFrame * CFrame.new(t14.l + t14.r, (t14.f + t14.b) * 0.2, 0).p - game.Workspace.CurrentCamera.CoordinateFrame.p)) * n3
+                    else
+                        BodyVelocity.velocity = Vector3.new(0, 0, 0)
+                    end
+                end
+                BodyGyro.cframe = game.Workspace.CurrentCamera.CoordinateFrame * CFrame.Angles(-math.rad((t13.f + t13.b) * 50 * n3 / n4), 0, 0)
+            end
+            BodyGyro:Destroy()
+            BodyVelocity:Destroy()
+            local Character5 = LocalPlayer3.Character
+            if Character5 then
+                Character5 = LocalPlayer3.Character:FindFirstChild("Humanoid")
+            end
+            if Character5 then
+                LocalPlayer3.Character.Humanoid.PlatformStand = false
+            end
+            local Character6 = game.Players.LocalPlayer.Character
+            if Character6 then
+                Character6 = game.Players.LocalPlayer.Character:FindFirstChild("Animate")
+            end
+            if Character6 then
+                game.Players.LocalPlayer.Character.Animate.Disabled = false
+            end
+            tpwalking = false
+            return
+        end
+        local LocalPlayer4 = game.Players.LocalPlayer
+        local Character7 = LocalPlayer4.Character
+        if Character7 then
+            Character7 = LocalPlayer4.Character:FindFirstChild("UpperTorso")
+        end
+        if not Character7 then return end
+        local t15 = {f = 0, b = 0, l = 0, r = 0}
+        local t16 = {f = 0, b = 0, l = 0, r = 0}
+        local n5 = 50
+        local n6 = 0
+        local BodyGyro = Instance.new("BodyGyro", Character7)
+        BodyGyro.P = 90000
+        BodyGyro.maxTorque = Vector3.new(9000000000, 9000000000, 9000000000)
+        BodyGyro.cframe = Character7.CFrame
+        local BodyVelocity = Instance.new("BodyVelocity", Character7)
+        BodyVelocity.velocity = Vector3.new(0, 0.1, 0)
+        BodyVelocity.maxForce = Vector3.new(9000000000, 9000000000, 9000000000)
+        if u53 == true then
+            local Character8 = LocalPlayer4.Character
+            if Character8 then
+                Character8 = LocalPlayer4.Character:FindFirstChild("Humanoid")
+            end
+            if Character8 then
+                LocalPlayer4.Character.Humanoid.PlatformStand = true
+            end
+        end
+        while true do
+            local v264 = u53 == true
+            if not v264 then
+                v264 = game:GetService("Players").LocalPlayer.Character
+                if v264 then
+                    v264 = game:GetService("Players").LocalPlayer.Character:FindFirstChild("Humanoid")
+                    if v264 then
+                        v264 = game:GetService("Players").LocalPlayer.Character.Humanoid.Health == 0
+                    end
+                end
+            end
+            if not v264 then break end
+            task.wait()
+            local v265 = t15.l + t15.r ~= 0
+            if not v265 then
+                v265 = t15.f + t15.b ~= 0
+            end
+            if v265 then
+                n6 = n6 + 0.5 + n6 / n5
+                if n5 < n6 then n6 = n5 end
+            else
+                local v266 = t15.l + t15.r ~= 0
+                if not v266 then
+                    v266 = t15.f + t15.b ~= 0
+                end
+                if not v266 and n6 ~= 0 then
+                    n6 -= 1
+                    if n6 < 0 then n6 = 0 end
+                end
+            end
+            local v267 = t15.l + t15.r ~= 0
+            if not v267 then
+                v267 = t15.f + t15.b ~= 0
+            end
+            if v267 then
+                BodyVelocity.velocity = (game.Workspace.CurrentCamera.CoordinateFrame.lookVector * (t15.f + t15.b) + (game.Workspace.CurrentCamera.CoordinateFrame * CFrame.new(t15.l + t15.r, (t15.f + t15.b) * 0.2, 0).p - game.Workspace.CurrentCamera.CoordinateFrame.p)) * n6
+                local f = t15.f
+                local b = t15.b
+                local l = t15.l
+                local r = t15.r
+                t16 = {f = f, b = b, l = l, r = r}
+            else
+                local v272 = t15.l + t15.r == 0
+                if v272 then
+                    v272 = t15.f + t15.b == 0 and n6 ~= 0
+                end
+                if v272 then
+                    BodyVelocity.velocity = (game.Workspace.CurrentCamera.CoordinateFrame.lookVector * (t16.f + t16.b) + (game.Workspace.CurrentCamera.CoordinateFrame * CFrame.new(t16.l + t16.r, (t16.f + t16.b) * 0.2, 0).p - game.Workspace.CurrentCamera.CoordinateFrame.p)) * n6
+                else
+                    BodyVelocity.velocity = Vector3.new(0, 0, 0)
+                end
+            end
+            BodyGyro.cframe = game.Workspace.CurrentCamera.CoordinateFrame * CFrame.Angles(-math.rad((t15.f + t15.b) * 50 * n6 / n5), 0, 0)
+        end
+        BodyGyro:Destroy()
+        BodyVelocity:Destroy()
+        local Character9 = LocalPlayer4.Character
+        if Character9 then
+            Character9 = LocalPlayer4.Character:FindFirstChild("Humanoid")
+        end
+        if Character9 then
+            LocalPlayer4.Character.Humanoid.PlatformStand = false
+        end
+        local Character10 = game.Players.LocalPlayer.Character
+        if Character10 then
+            Character10 = game.Players.LocalPlayer.Character:FindFirstChild("Animate")
+        end
+        if Character10 then
+            game.Players.LocalPlayer.Character.Animate.Disabled = false
+        end
+        tpwalking = false
+    end)
+    local connection
+    TextButton.MouseButton1Down:Connect(function()
+        connection = TextButton.MouseEnter:Connect(function()
+            while connection do
+                task.wait()
+                local Character = game.Players.LocalPlayer.Character
+                if Character then
+                    Character = game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                end
+                if Character then
+                    game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame * CFrame.new(0, 1, 0)
+                end
+            end
+        end)
+    end)
+    TextButton.MouseLeave:Connect(function()
+        if connection then connection:Disconnect() end
+    end)
+    local connection2
+    TextButton2.MouseButton1Down:Connect(function()
+        connection2 = TextButton2.MouseEnter:Connect(function()
+            while connection2 do
+                task.wait()
+                local Character = game.Players.LocalPlayer.Character
+                if Character then
+                    Character = game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                end
+                if Character then
+                    game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame * CFrame.new(0, -1, 0)
+                end
+            end
+        end)
+    end)
+    TextButton2.MouseLeave:Connect(function()
+        if connection2 then connection2:Disconnect() end
+    end)
+    TextButton4.MouseButton1Down:Connect(function()
+        n2 += 1
+        TextLabel2.Text = n2
+        if u53 == true then
+            tpwalking = false
+            for _ = 1, n2 do
+                task.spawn(function()
+                    local Heartbeat = game:GetService("RunService").Heartbeat
+                    tpwalking = true
+                    local Character = game.Players.LocalPlayer.Character
+                    local v290 = Character
+                    if Character then
+                        v290 = Character:FindFirstChildWhichIsA("Humanoid")
+                    end
+                    while true do
+                        local _tpwalking = tpwalking
+                        if _tpwalking then
+                            _tpwalking = Heartbeat:Wait()
+                            if _tpwalking then
+                                _tpwalking = Character
+                                if Character then
+                                    _tpwalking = v290 and v290.Parent
+                                end
+                            end
+                        end
+                        if not _tpwalking then break end
+                        if v290.MoveDirection.Magnitude > 0 then
+                            Character:TranslateBy(v290.MoveDirection)
+                        end
+                    end
+                end)
+            end
+        end
+    end)
+    TextButton5.MouseButton1Down:Connect(function()
+        if n2 == 1 then
+            TextLabel2.Text = "cannot be less than 1"
+            task.wait(1)
+            TextLabel2.Text = n2
+            return
+        end
+        n2 -= 1
+        TextLabel2.Text = n2
+        if u53 == true then
+            tpwalking = false
+            for _ = 1, n2 do
+                task.spawn(function()
+                    local Heartbeat = game:GetService("RunService").Heartbeat
+                    tpwalking = true
+                    local Character = game.Players.LocalPlayer.Character
+                    local v294 = Character
+                    if Character then
+                        v294 = Character:FindFirstChildWhichIsA("Humanoid")
+                    end
+                    while true do
+                        local _tpwalking = tpwalking
+                        if _tpwalking then
+                            _tpwalking = Heartbeat:Wait()
+                            if _tpwalking then
+                                _tpwalking = Character
+                                if Character then
+                                    _tpwalking = v294 and v294.Parent
+                                end
+                            end
+                        end
+                        if not _tpwalking then break end
+                        if v294.MoveDirection.Magnitude > 0 then
+                            Character:TranslateBy(v294.MoveDirection)
+                        end
+                    end
+                end)
+            end
+        end
+    end)
+    TextButton6.MouseButton1Click:Connect(function()
+        u55()
+        if ScreenGui then ScreenGui:Destroy() end
+        if t3.FlyToggle then t3.FlyToggle:Set(false) end
+    end)
+    TextButton7.MouseButton1Click:Connect(function()
+        TextButton.Visible = false
+        TextButton2.Visible = false
+        TextButton3.Visible = false
+        TextButton4.Visible = false
+        TextLabel2.Visible = false
+        TextButton5.Visible = false
+        TextButton7.Visible = false
+        TextButton8.Visible = true
+        ScreenGui.Frame.BackgroundTransparency = 1
+        TextButton6.Position = UDim2.new(0, 0, -1, 57)
+    end)
+    TextButton8.MouseButton1Click:Connect(function()
+        TextButton.Visible = true
+        TextButton2.Visible = true
+        TextButton3.Visible = true
+        TextButton4.Visible = true
+        TextLabel2.Visible = true
+        TextButton5.Visible = true
+        TextButton7.Visible = true
+        TextButton8.Visible = false
+        ScreenGui.Frame.BackgroundTransparency = 0
+        TextButton6.Position = UDim2.new(0, 0, -1, 27)
+    end)
+end
+
+local function v57()
+    u55()
+    if u54 then
+        u54:Destroy()
+        u54 = nil
+    end
+end
+
+--// Player tab - Fly
+PlayerTab:CreateSection("Fly")
+t3.FlyToggle = PlayerTab:CreateToggle({
+    Name = "Fly",
+    CurrentValue = false,
+    Flag = "FlyToggle",
+    Callback = function(p19)
+        u27.FlyToggle = p19
+        if p19 then
+            v56()
+            return
+        end
+        v57()
+    end
+})
+
+--// Config tab
+ConfigTab:CreateSection("Configuration")
+ConfigTab:CreateButton({
+    Name = "Save Config",
+    Callback = function()
+        Rayfield:SaveConfiguration()
+        Rayfield:Notify({ Title = "Config", Content = "Configuration saved!", Duration = 3 })
+    end
+})
+ConfigTab:CreateButton({
+    Name = "Load Config",
+    Callback = function()
+        Rayfield:LoadConfiguration()
+        Rayfield:Notify({ Title = "Config", Content = "Configuration loaded!", Duration = 3 })
+    end
+})
+
+--// Auto-farm loops (unchanged)
+task.spawn(function()
+    while true do
+        task.wait(0.5)
+        if u27.AutoRadio then
+            local v150 = v32()
+            local Plane = workspace:FindFirstChild("Plane")
+            if Plane then
+                Plane = workspace.Plane:FindFirstChild("Cockpit")
+            end
+            if Plane then
+                local ATCButton = Plane:FindFirstChild("ATCButton")
+                if not ATCButton then
+                    ATCButton = Plane:FindFirstChild("Radio")
+                    if not ATCButton then
+                        ATCButton = Plane:FindFirstChild("ATC")
+                    end
+                end
+                Plane = ATCButton
+            end
+            local v153 = Plane
+            if v150 and v153 then
+                v34(v150)
+                task.wait(0.2)
+                pcall(function()
+                    game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("TooltipAction"):FireServer("Radio", v153)
+                end)
+                task.wait(1)
+            end
+        end
+    end
+end)
+task.spawn(function()
+    while true do
+        task.wait(0.5)
+        if u27.AutoRepairRadio then
+            local v154 = v32()
+            local Plane = workspace:FindFirstChild("Plane")
+            if Plane then
+                Plane = workspace.Plane:FindFirstChild("Cockpit")
+            end
+            if Plane then
+                Plane = Plane:FindFirstChild("ATCButton")
+            end
+            local v156 = Plane
+            if v154 and v156 then
+                if v38("Wrench") then
+                    v34(v154)
+                    task.wait(0.2)
+                    pcall(function()
+                        game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("TooltipAction"):FireServer("atc_fix", v156)
+                    end)
+                    task.wait(1.5)
+                    v43("Radio Fix")
+                    v35()
+                    if t3.AutoRepairRadio then t3.AutoRepairRadio:Set(false) end
+                else
+                    v41("Wrench", "Wrench")
+                end
+            end
+        end
+    end
+end)
+task.spawn(function()
+    while true do
+        task.wait(0.5)
+        if u27.AutoRepairOxy then
+            local v157 = v32()
+            local Plane = workspace:FindFirstChild("Plane")
+            if Plane then
+                Plane = workspace.Plane:FindFirstChild("Cockpit")
+            end
+            if Plane then
+                Plane = Plane:FindFirstChild("OxygenButton")
+            end
+            local v159 = Plane
+            if v157 and v159 then
+                if v38("Wrench") then
+                    v34(v157)
+                    task.wait(0.2)
+                    pcall(function()
+                        game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("TooltipAction"):FireServer("oxygen_fix", v159)
+                    end)
+                    task.wait(1.5)
+                    v43("Oxygen Fix")
+                    v35()
+                    if t3.AutoRepairOxy then t3.AutoRepairOxy:Set(false) end
+                else
+                    v41("Wrench", "Wrench")
+                end
+            end
+        end
+    end
+end)
+task.spawn(function()
+    while true do
+        task.wait(0.5)
+        if u27.AutoRepairSeatBelt then
+            local v160 = v32()
+            local Plane = workspace:FindFirstChild("Plane")
+            if Plane then
+                Plane = workspace.Plane:FindFirstChild("Cockpit")
+            end
+            if Plane then
+                Plane = Plane:FindFirstChild("SeatbeltButton")
+            end
+            local v162 = Plane
+            if v160 and v162 then
+                if v38("Wrench") then
+                    v34(v160)
+                    task.wait(0.2)
+                    pcall(function()
+                        game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("TooltipAction"):FireServer("seatbelt_fix", v162)
+                    end)
+                    task.wait(1.5)
+                    v43("Seatbelt Fix")
+                    v35()
+                    if t3.AutoRepairSeatBelt then t3.AutoRepairSeatBelt:Set(false) end
+                else
+                    v41("Wrench", "Wrench")
+                end
+            end
+        end
+    end
+end)
+task.spawn(function()
+    while true do
+        task.wait(0.5)
+        if u27.AutoRepairAutopilot then
+            local v163 = v32()
+            local Plane = workspace:FindFirstChild("Plane")
+            if Plane then
+                Plane = workspace.Plane:FindFirstChild("Cockpit")
+            end
+            local v165 = Plane and Plane:FindFirstChild("AutopilotButton")
+            if v163 and v165 then
+                if v38("Wrench") then
+                    v34(v163)
+                    task.wait(0.2)
+                    pcall(function()
+                        game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("TooltipAction"):FireServer("autopilot_fix", v165)
+                    end)
+                    task.wait(1.5)
+                    v43("Autopilot Fix")
+                    v35()
+                    if t3.AutoRepairAutopilot then t3.AutoRepairAutopilot:Set(false) end
+                else
+                    v41("Wrench", "Wrench")
+                end
+            end
+        end
+    end
+end)
+task.spawn(function()
+    while true do
+        if u27.AutoTalk then
+            local Plane = workspace:FindFirstChild("Plane")
+            if Plane then
+                Plane = workspace.Plane:FindFirstChild("Passengers")
+            end
+            if Plane then
+                local Character = LocalPlayer.Character
+                if Character then
+                    Character = Character:FindFirstChild("HumanoidRootPart")
+                end
+                local v168 = Character and Character.CFrame
+                for i = 1, 6 do
+                    if not u27.AutoTalk then break end
+                    local v170 = Plane:FindFirstChild("Passenger_" .. i)
+                    if v170 then
+                        local v171 = Character
+                        if Character then
+                            v171 = v170:IsA("Model")
+                            if v171 then
+                                v171 = v170.PrimaryPart
+                            end
+                        end
+                        if v171 then
+                            Character.CFrame = v170.PrimaryPart.CFrame * CFrame.new(0, 0, 1.5)
+                            task.wait(0.1)
+                        end
+                        pcall(function()
+                            game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("TooltipAction"):FireServer("Talk to Passenger", v170)
+                        end)
+                    end
+                    task.wait(0.2)
+                end
+                if Character and v168 then
+                    Character.CFrame = v168
+                end
+            end
+            task.wait(4)
+        else
+            task.wait(1)
+        end
+    end
+end)
+task.spawn(function()
+    while true do
+        if u27.AutoFarmCoin then
+            local Plane = workspace:FindFirstChild("Plane")
+            if Plane then
+                Plane = workspace.Plane:FindFirstChild("Passengers")
+            end
+            if Plane then
+                local Character = LocalPlayer.Character
+                local v174 = Character and Character:FindFirstChild("HumanoidRootPart")
+                local v175 = v174 and v174.CFrame
+                for i = 1, 6 do
+                    if not u27.AutoFarmCoin then break end
+                    local v177 = Plane:FindFirstChild("Passenger_" .. i)
+                    if v177 then
+                        local v178 = v174
+                        if v174 then
+                            v178 = v177:IsA("Model")
+                            if v178 then
+                                v178 = v177.PrimaryPart
+                            end
+                        end
+                        if v178 then
+                            v174.CFrame = v177.PrimaryPart.CFrame * CFrame.new(0, 0, 1.5)
+                            task.wait(0.1)
+                        end
+                        pcall(function()
+                            game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("TooltipAction"):FireServer("Talk to Passenger", v177)
+                        end)
+                    end
+                    task.wait(0.2)
+                end
+                if v174 and v175 then
+                    v174.CFrame = v175
+                end
+                task.wait(4)
+            end
+        else
+            task.wait(1)
+        end
+    end
+end)
+task.spawn(function()
+    while true do
+        task.wait(0.5)
+        if u27.AutoUnclog then
+            local Plane = workspace:FindFirstChild("Plane")
+            if Plane then
+                Plane = workspace.Plane:FindFirstChild("Toilet")
+                if Plane then
+                    Plane = workspace.Plane.Toilet:FindFirstChild("Toilet_1")
+                end
+            end
+            local v180 = Plane
+            if v180 then
+                if v38("Plunger") then
+                    v34(v180)
+                    task.wait(0.2)
+                    pcall(function()
+                        game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("TooltipAction"):FireServer("Unclog Toilet", v180)
+                    end)
+                    task.wait(1.5)
+                    v43("Unclog Toilet")
+                    v35()
+                    if t3.AutoUnclog then t3.AutoUnclog:Set(false) end
+                else
+                    v41("Plunger", "Plunger")
+                end
+            end
+        end
+    end
+end)
+task.spawn(function()
+    while true do
+        task.wait(0.5)
+        if u27.AutoFuel then
+            local Plane = workspace:FindFirstChild("Plane")
+            if Plane then
+                local Fuel = Plane:FindFirstChild("Fuel")
+                if Fuel then
+                    Fuel = Fuel:FindFirstChild("PortLeft")
+                end
+                if Fuel then
+                    if not v40() then
+                        v41("Fuel Can", "Fuel Can")
+                        u27.AutoFuel = false
+                        if t3.AutoFuel then t3.AutoFuel:Set(false) end
+                    else
+                        local Character = LocalPlayer.Character
+                        if Character then
+                            Character = Character:FindFirstChild("HumanoidRootPart")
+                        end
+                        local v184 = Character and Character.CFrame
+                        v34(Fuel)
+                        task.wait(0.2)
+                        local FuelDoor = Fuel:FindFirstChild("FuelDoor")
+                        if FuelDoor then
+                            pcall(function()
+                                game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("TooltipAction"):FireServer("Fuel Door", FuelDoor)
+                            end)
+                            task.wait(0.3)
+                        end
+                        pcall(function()
+                            game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("GasAction"):FireServer("start", "PortLeft")
+                        end)
+                        local v186 = Plane:FindFirstChild("FuelLevel") or Plane:FindFirstChild("Fuel")
+                        if not v33() and v186 and v186:IsA("ValueBase") then
+                            if not (v186.Value >= 1000) then end
+                        end
+                        repeat
+                            task.wait(0.5)
+                            local v187 = v33()
+                            if not v187 then
+                                v187 = v186
+                                if v186 then
+                                    v187 = v186:IsA("ValueBase") and v186.Value >= 1000
+                                end
+                            end
+                        until v187
+                        if FuelDoor then
+                            pcall(function()
+                                game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("TooltipAction"):FireServer("Fuel Door", FuelDoor)
+                            end)
+                        end
+                        if Character and v184 then
+                            Character.CFrame = v184
+                        end
+                        v43("Auto Fuel")
+                        u27.AutoFuel = false
+                        if t3.AutoFuel then t3.AutoFuel:Set(false) end
+                        v35()
+                    end
+                end
+            end
+        end
+    end
+end)
+task.spawn(function()
+    while true do
+        task.wait(0.3)
+        if u27.AutoFeed then
+            local Plane = workspace:FindFirstChild("Plane")
+            if Plane then
+                Plane = workspace.Plane:FindFirstChild("Passengers")
+            end
+            if Plane then
+                for i = 1, 6 do
+                    if not u27.AutoFeed then break end
+                    v44()
+                    task.wait(0.2)
+                    v39()
+                    task.wait(0.2)
+                    local v190 = "Passenger_" .. i
+                    local v191 = Plane:FindFirstChild(v190)
+                    local v192 = v191
+                    if v192 then
+                        v192 = v191:IsA("Model")
+                    end
+                    if v192 then
+                        local PrimaryPart = v191.PrimaryPart
+                        if not PrimaryPart then
+                            PrimaryPart = v191:FindFirstChildWhichIsA("BasePart")
+                        end
+                        local Character = LocalPlayer.Character
+                        if Character then
+                            Character = Character:FindFirstChild("HumanoidRootPart")
+                        end
+                        if Character and PrimaryPart then
+                            Character.CFrame = PrimaryPart.CFrame * CFrame.new(0, 0, 1.5)
+                            task.wait(0.2)
+                        end
+                        pcall(function()
+                            game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("GasAction"):FireServer("Feed", v190)
+                            game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("TooltipAction"):FireServer("Feed", v191)
+                        end)
+                        task.wait(0.3)
+                    end
+                end
+                if u27.AutoFeed then
+                    task.wait(3)
+                end
+            end
+        end
+    end
+end)
+task.spawn(function()
+    local g200
+    while true do
+        repeat
+            task.wait(0.5)
+        until u27.AutoPickUpDelivery
+        local u195
+        local v196, v197, v198 = ipairs(workspace:GetDescendants())
+        local v199
+        repeat
+            v198, v199 = v196(v197, v198)
+            if not v198 then g200 = true end
+            if g200 then break end
+        until v199.Name:sub(1, 13) == "DeliveryCrate"
+        if not g200 then u195 = v199 end
+        g200 = false
+        if u195 then
+            local Character = LocalPlayer.Character
+            if Character then
+                Character = Character:FindFirstChild("HumanoidRootPart")
+            end
+            if Character then
+                local CharacterCFrame = Character.CFrame
+                v34(u195)
+                task.wait(0.3)
+                pcall(function()
+                    game:GetService("ReplicatedStorage").Remotes.TooltipAction:FireServer("Pickup Delivery", u195)
+                end)
+                task.wait(0.3)
+                Character.CFrame = CharacterCFrame
+                v43("Pick Up Delivery")
+                if t3.AutoPickUpDelivery then t3.AutoPickUpDelivery:Set(false) end
+            end
+        else
+            v42("Delivery Crate")
+        end
+    end
+end)
+task.spawn(function()
+    while true do
+        task.wait(0.5)
+        if u27.AutoRepairPower then
+            local Plane = workspace:FindFirstChild("Plane")
+            if Plane then
+                Plane = workspace.Plane:FindFirstChild("ElectricBox")
+                if Plane then
+                    Plane = workspace.Plane.ElectricBox:FindFirstChild("ElectricBox_1")
+                end
+            end
+            local v204 = Plane
+            if v204 then
+                if v38("Wrench") then
+                    pcall(function()
+                        game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("TooltipAction"):FireServer("electricbox_fix", v204:WaitForChild("Hitbox"))
+                    end)
+                    task.wait(1.5)
+                    v43("Electric Power Fix")
+                    v35()
+                    if t3.AutoRepairPower then t3.AutoRepairPower:Set(false) end
+                else
+                    v41("Wrench", "Wrench")
+                end
+            end
+        end
+    end
+end)
+task.spawn(function()
+    while true do
+        task.wait(0.5)
+        if u27.AutoRepairEngine then
+            local Plane = workspace:FindFirstChild("Plane")
+            if Plane then
+                Plane = workspace.Plane:FindFirstChild("Engines")
+            end
+            local v206 = Plane
+            if v206 then
+                if v38("Wrench") then
+                    pcall(function()
+                        for _, child in ipairs(v206:GetChildren()) do
+                            local RepairHitbox = child:FindFirstChild("RepairHitbox")
+                            if RepairHitbox then
+                                game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("TooltipAction"):FireServer("Repair Engine", RepairHitbox)
+                            end
+                        end
+                    end)
+                    task.wait(1.5)
+                    v43("Engine Repair")
+                    v35()
+                    if t3.AutoRepairEngine then t3.AutoRepairEngine:Set(false) end
+                else
+                    v41("Wrench", "Wrench")
+                end
+            end
+        end
+    end
+end)
+task.spawn(function()
+    while true do
+        task.wait(0.5)
+        if u27.AutoWakeUp then
+            pcall(function()
+                game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("PassoutRemote"):FireServer("wake_up")
+            end)
+        end
+    end
+end)
+task.spawn(function()
+    while true do
+        task.wait(0.5)
+        if u27.AutoBreakIce then
+            local Plane = workspace:FindFirstChild("Plane")
+            if Plane then
+                Plane = workspace.Plane:FindFirstChild("Passengers")
+            end
+            if Plane then
+                for i = 1, 8 do
+                    if not u27.AutoBreakIce then break end
+                    local v209 = Plane:FindFirstChild("Passenger_" .. i)
+                    if v209 then
+                        pcall(function()
+                            game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("TooltipAction"):FireServer("Break Ice", v209)
+                        end)
+                    end
+                end
+                if t3.AutoBreakIce then t3.AutoBreakIce:Set(false) end
+            end
+        end
+    end
+end)
+task.spawn(function()
+    while true do
+        task.wait(1)
+        if u27.AutoReplay then
+            pcall(function()
+                game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("ReplayVote"):FireServer()
+            end)
+        end
+    end
+end)
+task.spawn(function()
+    while true do
+        task.wait(5)
+        if u27.AntiCrash then
+            pcall(function()
+                game:GetService("Lighting").GlobalShadows = false
+                for _, descendant in ipairs(workspace:GetDescendants()) do
+                    if descendant:IsA("BasePart") then
+                        descendant.CastShadow = false
+                    end
+                end
+            end)
+        end
+    end
+end)
+pcall(function()
+    LocalPlayer.OnTeleport:Connect(function()
+        v30()
+    end)
+end)
