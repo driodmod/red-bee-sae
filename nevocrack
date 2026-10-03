@@ -1,9 +1,16 @@
-
-
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 
-print("Cracked by Unknown · Nevo sucks · Use Scarlet today")
+local markerName = "__BurgerScriptSingleRun"
+if player:FindFirstChild(markerName) then
+    player:Kick("Do not run this twice retard.")
+    return
+end
+
+local marker = Instance.new("BoolValue")
+
+marker.Name = markerName
+marker.Parent = player
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -1770,8 +1777,8 @@ end)
 local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua"))()
 
 local Window = WindUI:CreateWindow({
-    Title = "Scarlet",
-    Author = "Cracked by Unknown",
+    Title = "TFB",
+    Author = "Nevo Scripts",
     Folder = "tfbhub_v4",
     Icon = "shield",
     Theme = "Dark",
@@ -1789,7 +1796,7 @@ local Window = WindUI:CreateWindow({
     SideBarWidth = 200,
     Topbar = { Height = 44, ButtonsType = "Default" },
     OpenButton = {
-        Title = "Scarlet", Icon = "zap", CornerRadius = UDim.new(1, 0),
+        Title = "TFB", Icon = "zap", CornerRadius = UDim.new(1, 0),
         StrokeThickness = 3, Enabled = true, Draggable = true,
         OnlyMobile = false, Scale = 1,
         Color = ColorSequence.new(Color3.fromHex("#000000"), Color3.fromHex("#000000")),
@@ -3402,7 +3409,7 @@ ThemeTab:Button({
     Title = "Save Config",
     Callback = function()
         persistAll()
-        WindUI:Notify({ Title = "Scarlet", Content = "Config saved (auto-loads next time)" })
+        WindUI:Notify({ Title = "TFB", Content = "Config saved (auto-loads next time)" })
     end,
 })
 ThemeTab:Button({
@@ -3410,9 +3417,9 @@ ThemeTab:Button({
     Callback = function()
         local data = loadConfigFromDisk()
         if data then
-            WindUI:Notify({ Title = "Scarlet", Content = "Config found - re-execute script to apply" })
+            WindUI:Notify({ Title = "TFB", Content = "Config found - re-execute script to apply" })
         else
-            WindUI:Notify({ Title = "Scarlet", Content = "No config found" })
+            WindUI:Notify({ Title = "TFB", Content = "No config found" })
         end
     end,
 })
@@ -3421,22 +3428,22 @@ ThemeTab:Button({
     Callback = function()
         if delfile and isfile and isfile(CONFIG_FILE) then
             pcall(function() delfile(CONFIG_FILE) end)
-            WindUI:Notify({ Title = "Scarlet", Content = "Config reset - re-execute to apply" })
+            WindUI:Notify({ Title = "TFB", Content = "Config reset - re-execute to apply" })
         end
     end,
 })
 
-CreditsTab:Section({ Title = "Cracked by Unknown · Nevo sucks" })
+CreditsTab:Section({ Title = "Made by Xylo and Mike" })
 CreditsTab:Button({
     Title = "Copy Discord Link",
     Callback = function()
-        if setclipboard then setclipboard("https://discord.gg/7fVCPR7GUv") end
-        WindUI:Notify({ Title = "Scarlet", Content = "Discord link copied to clipboard!" })
+        if setclipboard then setclipboard("https://discord.gg/8c7d2CDCss") end
+        WindUI:Notify({ Title = "TFB", Content = "Discord link copied to clipboard!" })
     end,
 })
 
 task.spawn(function()
     task.wait(1)
-    pcall(function() WindUI:Notify({ Title = "Scarlet V2", Content = "Scarlet loaded · Nevo sucks" }) end)
+    pcall(function() WindUI:Notify({ Title = "TFB V2", Content = "Welcome to TFB!" }) end)
     pcall(function() WindUI:SetNotificationLower(true) end)
 end)
