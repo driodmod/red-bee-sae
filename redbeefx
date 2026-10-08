@@ -1,0 +1,2315 @@
+--==================================================*
+-- RED BEE HUB | GUN CUSTOMIZER
+-- OWNED BY RED BEE
+-- LocalScript
+-- StarterPlayer > StarterPlayerScripts
+--
+-- LOCAL ONLY
+--
+-- STYLES:
+-- Normal
+-- RedScope
+-- BlueScope
+-- Purple
+-- VoidScope
+-- Rosescope
+-- WhiteScope
+-- GhostScope
+--
+-- GhostScope now applies to the gun in hand
+-- exactly like the GunDisplay:
+-- WHITE + 50% TRANSPARENT + NO TEXTURE
+--==================================================*
+
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local player = Players.LocalPlayer
+
+--==================================================*
+-- SETTINGS
+--==================================================*
+
+local GUN_TOOL_NAME = "Gun"
+local TARGET_NAME = "GunDisplay"
+local hideKey = Enum.KeyCode.RightShift
+
+--==================================================*
+-- TEXTURES
+--==================================================*
+
+local RED_TEXTURE_ID = "rbxassetid://84961185975751"
+local BLUE_TEXTURE_ID = "rbxassetid://82435090032680"
+local PURPLE_TEXTURE_ID = "rbxassetid://88934686234709"
+local VOIDSCOPE_TEXTURE_ID = "rbxassetid://119603354495392"
+local ROSESCOPE_TEXTURE_ID = "rbxassetid://102809990017058"
+local WHITESCOPE_TEXTURE_ID = "rbxassetid://87412774611144"
+
+--==================================================*
+-- COLORS
+--==================================================*
+
+local RED_BEAM_COLOR = Color3.fromRGB(170, 0, 0)
+local BLUE_BEAM_COLOR = Color3.fromRGB(20, 45, 110)
+local PURPLE_BEAM_COLOR = Color3.fromRGB(115, 35, 170)
+local ROSESCOPE_BEAM_COLOR = Color3.fromRGB(255, 105, 180)
+local WHITE = Color3.fromRGB(255, 255, 255)
+local BLACK = Color3.fromRGB(0, 0, 0)
+
+--==================================================*
+-- CURRENT STYLE
+--==================================================*
+
+local CURRENT_STYLE = "Normal"
+local TEXTURE_ID = nil
+local BEAM_COLOR = nil
+local waitingForKey = false
+local dragging = false
+
+--==================================================*
+-- STORAGE
+--==================================================*
+
+local selectedGunDisplay = nil
+local equippedGun = nil
+local originalDisplayTextures = {}
+local originalGunProperties = {}
+local connectedTools = {}
+local gunDescendantConnections = {}
+local toolEffectConnections = {}
+
+--==================================================*
+-- STYLE DATA
+--==================================================*
+
+local Styles = {
+
+    {
+        Name = "Normal",
+        Texture = nil,
+        Beam = nil
+    },
+
+    {
+        Name = "RedScope",
+        Texture = RED_TEXTURE_ID,
+        Beam = RED_BEAM_COLOR
+    },
+
+    {
+        Name = "BlueScope",
+        Texture = BLUE_TEXTURE_ID,
+        Beam = BLUE_BEAM_COLOR
+    },
+
+    {
+        Name = "Purple",
+        Texture = PURPLE_TEXTURE_ID,
+        Beam = PURPLE_BEAM_COLOR
+    },
+
+    {
+        Name = "VoidScope",
+        Texture = VOIDSCOPE_TEXTURE_ID,
+        Beam = WHITE,
+        VoidFade = true
+    },
+
+    {
+        Name = "Rosescope",
+        Texture = ROSESCOPE_TEXTURE_ID,
+        Beam = ROSESCOPE_BEAM_COLOR
+    },
+
+    {
+        Name = "WhiteScope",
+        Texture = WHITESCOPE_TEXTURE_ID,
+        Beam = WHITE
+    },
+
+    {
+        Name = "GhostScope",
+        Texture = nil,
+        Beam = WHITE,
+        Ghost = true
+    }
+
+}
+
+--==================================================*
+-- LOADING SCREEN
+--==================================================*
+
+local loadingGui = Instance.new("ScreenGui")
+loadingGui.Name = "RedBeeHubLoading"
+loadingGui.ResetOnSpawn = false
+loadingGui.IgnoreGuiInset = true
+loadingGui.DisplayOrder = 999
+loadingGui.Parent = player:WaitForChild("PlayerGui")
+
+local loadingBackground = Instance.new("Frame")
+loadingBackground.Size = UDim2.fromScale(1, 1)
+loadingBackground.BackgroundColor3 = Color3.fromRGB(18, 0, 0)
+loadingBackground.BorderSizePixel = 0
+loadingBackground.Parent = loadingGui
+
+local loadingGradient = Instance.new("UIGradient")
+loadingGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(18, 0, 0)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(85, 0, 0)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(18, 0, 0))
+})
+loadingGradient.Rotation = 45
+loadingGradient.Parent = loadingBackground
+
+local loadingTitle = Instance.new("TextLabel")
+loadingTitle.Size = UDim2.new(1, 0, 0, 80)
+loadingTitle.Position = UDim2.new(0, 0, 0.5, -70)
+loadingTitle.BackgroundTransparency = 1
+loadingTitle.Text = "RED BEE HUB"
+loadingTitle.TextColor3 = Color3.fromRGB(255, 55, 55)
+loadingTitle.Font = Enum.Font.GothamBlack
+loadingTitle.TextSize = 52
+loadingTitle.TextTransparency = 1
+loadingTitle.Parent = loadingBackground
+
+local loadingSub = Instance.new("TextLabel")
+loadingSub.Size = UDim2.new(1, 0, 0, 30)
+loadingSub.Position = UDim2.new(0, 0, 0.5, 5)
+loadingSub.BackgroundTransparency = 1
+loadingSub.Text = "GUN CUSTOMIZER  •  OWNED BY RED BEE"
+loadingSub.TextColor3 = Color3.fromRGB(255, 195, 195)
+loadingSub.Font = Enum.Font.GothamBold
+loadingSub.TextSize = 14
+loadingSub.TextTransparency = 1
+loadingSub.Parent = loadingBackground
+
+local loadingBarBack = Instance.new("Frame")
+loadingBarBack.Size = UDim2.fromOffset(240, 6)
+loadingBarBack.Position = UDim2.new(0.5, -120, 0.5, 50)
+loadingBarBack.BackgroundColor3 = Color3.fromRGB(60, 8, 8)
+loadingBarBack.BorderSizePixel = 0
+loadingBarBack.Parent = loadingBackground
+
+local loadingBarCorner = Instance.new("UICorner")
+loadingBarCorner.CornerRadius = UDim.new(1, 0)
+loadingBarCorner.Parent = loadingBarBack
+
+local loadingBar = Instance.new("Frame")
+loadingBar.Size = UDim2.new(0, 0, 1, 0)
+loadingBar.BackgroundColor3 = Color3.fromRGB(225, 20, 20)
+loadingBar.BorderSizePixel = 0
+loadingBar.Parent = loadingBarBack
+
+local loadingBarCorner2 = Instance.new("UICorner")
+loadingBarCorner2.CornerRadius = UDim.new(1, 0)
+loadingBarCorner2.Parent = loadingBar
+
+TweenService:Create(
+    loadingTitle,
+    TweenInfo.new(0.7, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+    {TextTransparency = 0}
+):Play()
+
+task.wait(0.35)
+
+TweenService:Create(
+    loadingSub,
+    TweenInfo.new(0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+    {TextTransparency = 0}
+):Play()
+
+TweenService:Create(
+    loadingBar,
+    TweenInfo.new(1.5, Enum.EasingStyle.Quart, Enum.EasingDirection.Out),
+    {Size = UDim2.fromScale(1, 1)}
+):Play()
+
+task.wait(1.7)
+
+--==================================================*
+-- MAIN GUI
+--==================================================*
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "RedBeeHubGunCustomizer"
+gui.ResetOnSpawn = false
+gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+gui.Parent = player:WaitForChild("PlayerGui")
+
+local main = Instance.new("Frame")
+main.Name = "Main"
+main.Size = UDim2.fromOffset(360, 390)
+main.Position = UDim2.new(0.5, -180, 0.5, -195)
+main.BackgroundColor3 = Color3.fromRGB(26, 5, 5)
+main.BorderSizePixel = 0
+main.Parent = gui
+
+local mainCorner = Instance.new("UICorner")
+mainCorner.CornerRadius = UDim.new(0, 18)
+mainCorner.Parent = main
+
+local mainStroke = Instance.new("UIStroke")
+mainStroke.Color = Color3.fromRGB(200, 15, 15)
+mainStroke.Thickness = 2
+mainStroke.Parent = main
+
+--==================================================*
+-- HEADER
+--==================================================*
+
+local header = Instance.new("Frame")
+header.Size = UDim2.new(1, -20, 0, 58)
+header.Position = UDim2.fromOffset(10, 10)
+header.BackgroundColor3 = Color3.fromRGB(190, 12, 12)
+header.BorderSizePixel = 0
+header.Parent = main
+
+local headerCorner = Instance.new("UICorner")
+headerCorner.CornerRadius = UDim.new(0, 14)
+headerCorner.Parent = header
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, -65, 1, 0)
+title.Position = UDim2.fromOffset(17, 0)
+title.BackgroundTransparency = 1
+title.Text = "RED BEE HUB"
+title.TextColor3 = WHITE
+title.Font = Enum.Font.GothamBlack
+title.TextSize = 22
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = header
+
+local subtitle = Instance.new("TextLabel")
+subtitle.Size = UDim2.new(1, -80, 0, 18)
+subtitle.Position = UDim2.fromOffset(18, 33)
+subtitle.BackgroundTransparency = 1
+subtitle.Text = "GUN CUSTOMIZER  •  OWNED BY RED BEE"
+subtitle.TextColor3 = Color3.fromRGB(255, 195, 195)
+subtitle.Font = Enum.Font.GothamBold
+subtitle.TextSize = 9
+subtitle.TextXAlignment = Enum.TextXAlignment.Left
+subtitle.Parent = header
+
+local closeButton = Instance.new("TextButton")
+closeButton.Size = UDim2.fromOffset(36, 36)
+closeButton.Position = UDim2.new(1, -44, 0.5, -18)
+closeButton.BackgroundColor3 = Color3.fromRGB(225, 35, 35)
+closeButton.Text = "×"
+closeButton.TextColor3 = WHITE
+closeButton.Font = Enum.Font.GothamBold
+closeButton.TextSize = 24
+closeButton.BorderSizePixel = 0
+closeButton.Parent = header
+
+local closeCorner = Instance.new("UICorner")
+closeCorner.CornerRadius = UDim.new(1, 0)
+closeCorner.Parent = closeButton
+
+--==================================================*
+-- DRAGGING
+--==================================================*
+
+local dragStart
+local startPosition
+
+header.InputBegan:Connect(function(input)
+
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
+
+        dragging = true
+        dragStart = input.Position
+        startPosition = main.Position
+
+    end
+
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+
+    if not dragging then
+        return
+    end
+
+    if input.UserInputType ~= Enum.UserInputType.MouseMovement
+        and input.UserInputType ~= Enum.UserInputType.Touch then
+
+        return
+
+    end
+
+    local delta =
+        input.Position - dragStart
+
+    main.Position = UDim2.new(
+        startPosition.X.Scale,
+        startPosition.X.Offset + delta.X,
+        startPosition.Y.Scale,
+        startPosition.Y.Offset + delta.Y
+    )
+
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
+
+        dragging = false
+
+    end
+
+end)
+
+--==================================================*
+-- CURRENT STYLE BOX
+--==================================================*
+
+local currentBox = Instance.new("Frame")
+currentBox.Size = UDim2.new(1, -20, 0, 72)
+currentBox.Position = UDim2.fromOffset(10, 78)
+currentBox.BackgroundColor3 = Color3.fromRGB(62, 10, 10)
+currentBox.BorderSizePixel = 0
+currentBox.Parent = main
+
+local currentCorner = Instance.new("UICorner")
+currentCorner.CornerRadius = UDim.new(0, 13)
+currentCorner.Parent = currentBox
+
+local currentTitle = Instance.new("TextLabel")
+currentTitle.Size = UDim2.new(1, -20, 0, 22)
+currentTitle.Position = UDim2.fromOffset(10, 7)
+currentTitle.BackgroundTransparency = 1
+currentTitle.Text = "CURRENT STYLE"
+currentTitle.TextColor3 = Color3.fromRGB(255, 130, 130)
+currentTitle.Font = Enum.Font.GothamBold
+currentTitle.TextSize = 10
+currentTitle.TextXAlignment = Enum.TextXAlignment.Left
+currentTitle.Parent = currentBox
+
+local currentStyle = Instance.new("TextLabel")
+currentStyle.Size = UDim2.new(1, -20, 0, 32)
+currentStyle.Position = UDim2.fromOffset(10, 29)
+currentStyle.BackgroundTransparency = 1
+currentStyle.Text = "NORMAL"
+currentStyle.TextColor3 = Color3.fromRGB(255, 130, 130)
+currentStyle.Font = Enum.Font.GothamBlack
+currentStyle.TextSize = 19
+currentStyle.TextXAlignment = Enum.TextXAlignment.Left
+currentStyle.Parent = currentBox
+
+--==================================================*
+-- BUTTON CREATOR
+--==================================================*
+
+local function makeButton(name, text, position, color)
+
+    local button = Instance.new("TextButton")
+    button.Name = name
+    button.Size = UDim2.new(1, -20, 0, 40)
+    button.Position = position
+    button.BackgroundColor3 = color
+    button.BorderSizePixel = 0
+    button.Text = text
+    button.TextColor3 = WHITE
+    button.Font = Enum.Font.GothamBold
+    button.TextSize = 13
+    button.Parent = main
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 11)
+    corner.Parent = button
+
+    return button
+
+end
+
+--==================================================*
+-- BUTTONS
+--==================================================*
+
+local styleButton = makeButton(
+    "StyleButton",
+    "SELECT STYLE: NORMAL",
+    UDim2.fromOffset(10, 160),
+    Color3.fromRGB(115, 25, 25)
+)
+
+local applyButton = makeButton(
+    "ApplyButton",
+    "APPLY TO NEAREST GUNDISPLAY",
+    UDim2.fromOffset(10, 206),
+    Color3.fromRGB(205, 18, 18)
+)
+
+local resetButton = makeButton(
+    "ResetButton",
+    "RESET TO NORMAL",
+    UDim2.fromOffset(10, 252),
+    Color3.fromRGB(115, 25, 25)
+)
+
+local keybindButton = makeButton(
+    "KeybindButton",
+    "HIDE UI: RIGHTSHIFT",
+    UDim2.fromOffset(10, 298),
+    Color3.fromRGB(145, 12, 12)
+)
+
+--==================================================*
+-- STATUS
+--==================================================*
+
+local status = Instance.new("TextLabel")
+status.Size = UDim2.new(1, -20, 0, 28)
+status.Position = UDim2.fromOffset(10, 348)
+status.BackgroundTransparency = 1
+status.Text = "Ready."
+status.TextColor3 = Color3.fromRGB(255, 150, 150)
+status.Font = Enum.Font.Gotham
+status.TextSize = 11
+status.TextXAlignment = Enum.TextXAlignment.Center
+status.Parent = main
+
+--==================================================*
+-- STYLE PICKER
+--==================================================*
+
+local picker = Instance.new("Frame")
+picker.Name = "StylePicker"
+picker.Size = UDim2.fromOffset(260, 245)
+picker.Position = UDim2.new(0.5, -130, 0.5, -122)
+picker.BackgroundColor3 = Color3.fromRGB(26, 5, 5)
+picker.BorderSizePixel = 0
+picker.Visible = false
+picker.ZIndex = 20
+picker.Parent = gui
+
+local pickerCorner = Instance.new("UICorner")
+pickerCorner.CornerRadius = UDim.new(0, 14)
+pickerCorner.Parent = picker
+
+local pickerStroke = Instance.new("UIStroke")
+pickerStroke.Color = Color3.fromRGB(200, 15, 15)
+pickerStroke.Thickness = 2
+pickerStroke.Parent = picker
+
+local pickerTitle = Instance.new("TextLabel")
+pickerTitle.Size = UDim2.new(1, -20, 0, 35)
+pickerTitle.Position = UDim2.fromOffset(10, 5)
+pickerTitle.BackgroundTransparency = 1
+pickerTitle.Text = "SELECT STYLE"
+pickerTitle.TextColor3 = Color3.fromRGB(255, 130, 130)
+pickerTitle.Font = Enum.Font.GothamBlack
+pickerTitle.TextSize = 15
+pickerTitle.TextXAlignment = Enum.TextXAlignment.Left
+pickerTitle.ZIndex = 21
+pickerTitle.Parent = picker
+
+local pickerClose = Instance.new("TextButton")
+pickerClose.Size = UDim2.fromOffset(30, 30)
+pickerClose.Position = UDim2.new(1, -38, 0, 7)
+pickerClose.BackgroundColor3 = Color3.fromRGB(190, 12, 12)
+pickerClose.Text = "×"
+pickerClose.TextColor3 = WHITE
+pickerClose.Font = Enum.Font.GothamBold
+pickerClose.TextSize = 19
+pickerClose.BorderSizePixel = 0
+pickerClose.ZIndex = 21
+pickerClose.Parent = picker
+
+local pickerCloseCorner = Instance.new("UICorner")
+pickerCloseCorner.CornerRadius = UDim.new(1, 0)
+pickerCloseCorner.Parent = pickerClose
+
+local pickerScroll = Instance.new("ScrollingFrame")
+pickerScroll.Name = "StyleScroll"
+pickerScroll.Size = UDim2.new(1, -20, 1, -50)
+pickerScroll.Position = UDim2.fromOffset(10, 45)
+pickerScroll.BackgroundColor3 = Color3.fromRGB(45, 8, 8)
+pickerScroll.BorderSizePixel = 0
+pickerScroll.ScrollBarThickness = 5
+pickerScroll.ScrollBarImageColor3 = Color3.fromRGB(190, 12, 12)
+pickerScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+pickerScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+pickerScroll.ZIndex = 21
+pickerScroll.Parent = picker
+
+local pickerScrollCorner = Instance.new("UICorner")
+pickerScrollCorner.CornerRadius = UDim.new(0, 10)
+pickerScrollCorner.Parent = pickerScroll
+
+local pickerLayout = Instance.new("UIListLayout")
+pickerLayout.Padding = UDim.new(0, 6)
+pickerLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+pickerLayout.SortOrder = Enum.SortOrder.LayoutOrder
+pickerLayout.Parent = pickerScroll
+
+local pickerPadding = Instance.new("UIPadding")
+pickerPadding.PaddingTop = UDim.new(0, 7)
+pickerPadding.PaddingBottom = UDim.new(0, 7)
+pickerPadding.PaddingLeft = UDim.new(0, 7)
+pickerPadding.PaddingRight = UDim.new(0, 7)
+pickerPadding.Parent = pickerScroll
+
+--==================================================*
+-- STYLE UI COLORS
+--==================================================*
+
+local function getStyleColor(styleName)
+
+    if styleName == "Normal" then
+        return Color3.fromRGB(115, 25, 25)
+
+    elseif styleName == "RedScope" then
+        return Color3.fromRGB(200, 55, 70)
+
+    elseif styleName == "BlueScope" then
+        return Color3.fromRGB(45, 75, 160)
+
+    elseif styleName == "Purple" then
+        return Color3.fromRGB(135, 55, 190)
+
+    elseif styleName == "VoidScope" then
+        return Color3.fromRGB(80, 80, 85)
+
+    elseif styleName == "Rosescope" then
+        return Color3.fromRGB(225, 95, 155)
+
+    elseif styleName == "WhiteScope" then
+        return Color3.fromRGB(120, 120, 125)
+
+    elseif styleName == "GhostScope" then
+        return Color3.fromRGB(135, 135, 140)
+    end
+
+    return Color3.fromRGB(115, 25, 25)
+
+end
+
+local function getTextColor(styleName)
+
+    if styleName == "Normal" then
+        return Color3.fromRGB(255, 130, 130)
+
+    elseif styleName == "RedScope" then
+        return Color3.fromRGB(255, 75, 75)
+
+    elseif styleName == "BlueScope" then
+        return Color3.fromRGB(115, 155, 255)
+
+    elseif styleName == "Purple" then
+        return Color3.fromRGB(190, 125, 255)
+
+    elseif styleName == "VoidScope" then
+        return Color3.fromRGB(205, 205, 210)
+
+    elseif styleName == "Rosescope" then
+        return Color3.fromRGB(255, 135, 190)
+
+    elseif styleName == "WhiteScope" then
+        return Color3.fromRGB(240, 240, 245)
+
+    elseif styleName == "GhostScope" then
+        return Color3.fromRGB(225, 225, 230)
+
+    end
+
+    return Color3.fromRGB(255, 130, 130)
+
+end
+
+--==================================================*
+-- UPDATE STYLE UI
+--==================================================*
+
+local function updateStyleUI()
+
+    currentStyle.Text = string.upper(CURRENT_STYLE)
+
+    currentStyle.TextColor3 =
+        getTextColor(CURRENT_STYLE)
+
+    styleButton.Text =
+        "SELECT STYLE: "
+        .. string.upper(CURRENT_STYLE)
+
+    styleButton.BackgroundColor3 =
+        getStyleColor(CURRENT_STYLE)
+
+end
+
+--==================================================*
+-- OBJECT POSITION
+--==================================================*
+
+local function getObjectPosition(object)
+
+    if object:IsA("BasePart") then
+        return object.Position
+    end
+
+    if object:IsA("Model") then
+
+        local part =
+            object.PrimaryPart
+            or object:FindFirstChildWhichIsA(
+                "BasePart",
+                true
+            )
+
+        if part then
+            return part.Position
+        end
+
+    end
+
+    if object:IsA("Tool") then
+
+        local handle =
+            object:FindFirstChild(
+                "Handle",
+                true
+            )
+
+        if handle and handle:IsA("BasePart") then
+            return handle.Position
+        end
+
+    end
+
+    return nil
+
+end
+
+--==================================================*
+-- FIND NEAREST GUNDISPLAY
+--==================================================*
+
+local function findNearestGunDisplay()
+
+    local character = player.Character
+
+    local root =
+        character
+        and character:FindFirstChild(
+            "HumanoidRootPart"
+        )
+
+    if not root then
+        return nil, nil, "Character isn't loaded."
+    end
+
+    local nearest = nil
+    local nearestDistance = math.huge
+
+    for _, object in ipairs(
+        workspace:GetDescendants()
+    ) do
+
+        if object.Name == TARGET_NAME then
+
+            local position =
+                getObjectPosition(object)
+
+            if position then
+
+                local distance =
+                    (position - root.Position).Magnitude
+
+                if distance < nearestDistance then
+
+                    nearestDistance = distance
+                    nearest = object
+
+                end
+
+            end
+
+        end
+
+    end
+
+    if not nearest then
+        return nil, nil, "No GunDisplay found."
+    end
+
+    return nearest, nearestDistance
+
+end
+
+--==================================================*
+-- DISPLAY ORIGINALS
+--==================================================*
+
+local function saveDisplayOriginal(
+    object,
+    property
+)
+
+    if not originalDisplayTextures[object] then
+
+        originalDisplayTextures[object] = {}
+
+    end
+
+    if originalDisplayTextures[object][property]
+        == nil then
+
+        originalDisplayTextures[object][property] =
+            object[property]
+
+    end
+
+end
+
+--==================================================*
+-- CHANGE GUNDISPLAY
+--==================================================*
+
+local function changeDisplayTextures(root)
+
+    if not root or not root.Parent then
+        return 0
+    end
+
+    local changed = 0
+
+    local function change(
+        object,
+        property,
+        value
+    )
+
+        local success = pcall(
+            function()
+
+                saveDisplayOriginal(
+                    object,
+                    property
+                )
+
+                object[property] = value
+
+            end
+        )
+
+        if success then
+            changed += 1
+        end
+
+    end
+
+    --==================================================*
+    -- GHOSTSCOPE
+    --==================================================*
+
+    if CURRENT_STYLE == "GhostScope" then
+
+        local function ghostObject(object)
+
+            if object:IsA("BasePart") then
+
+                change(
+                    object,
+                    "Color",
+                    WHITE
+                )
+
+                change(
+                    object,
+                    "Transparency",
+                    0.5
+                )
+
+                if object:IsA("MeshPart") then
+
+                    change(
+                        object,
+                        "TextureID",
+                        ""
+                    )
+
+                end
+
+            elseif object:IsA("SpecialMesh") then
+
+                change(
+                    object,
+                    "TextureId",
+                    ""
+                )
+
+                local parent = object.Parent
+
+                if parent
+                    and parent:IsA("BasePart") then
+
+                    change(
+                        parent,
+                        "Color",
+                        WHITE
+                    )
+
+                    change(
+                        parent,
+                        "Transparency",
+                        0.5
+                    )
+
+                end
+
+            elseif object:IsA("Decal")
+                or object:IsA("Texture") then
+
+                change(
+                    object,
+                    "Transparency",
+                    1
+                )
+
+            elseif object:IsA("Beam")
+                or object:IsA("Trail") then
+
+                change(
+                    object,
+                    "Color",
+                    ColorSequence.new(WHITE)
+                )
+
+                change(
+                    object,
+                    "Transparency",
+                    NumberSequence.new(0.5)
+                )
+
+            end
+
+        end
+
+        ghostObject(root)
+
+        for _, object in ipairs(
+            root:GetDescendants()
+        ) do
+
+            ghostObject(object)
+
+        end
+
+        return changed
+
+    end
+
+    --==================================================*
+    -- NORMAL TEXTURE SCOPES
+    --==================================================*
+
+    if not TEXTURE_ID then
+        return 0
+    end
+
+    local function changeTexture(object)
+
+        if object:IsA("MeshPart") then
+
+            change(
+                object,
+                "TextureID",
+                TEXTURE_ID
+            )
+
+        elseif object:IsA("SpecialMesh") then
+
+            change(
+                object,
+                "TextureId",
+                TEXTURE_ID
+            )
+
+        elseif object:IsA("Decal")
+            or object:IsA("Texture") then
+
+            change(
+                object,
+                "Texture",
+                TEXTURE_ID
+            )
+
+        end
+
+    end
+
+    changeTexture(root)
+
+    for _, object in ipairs(
+        root:GetDescendants()
+    ) do
+
+        changeTexture(object)
+
+    end
+
+    return changed
+
+end
+
+--==================================================*
+-- GUN ORIGINAL STORAGE
+--==================================================*
+
+local function saveGunOriginal(
+    object,
+    property
+)
+
+    if not originalGunProperties[object] then
+        originalGunProperties[object] = {}
+    end
+
+    if originalGunProperties[object][property]
+        == nil then
+
+        originalGunProperties[object][property] =
+            object[property]
+
+    end
+
+end
+
+--==================================================*
+-- EFFECT COLOR
+--==================================================*
+
+local function applyEffectColor(object)
+
+    if not object then
+        return
+    end
+
+    if not (
+        object:IsA("Beam")
+        or object:IsA("Trail")
+    ) then
+
+        return
+
+    end
+
+    saveGunOriginal(
+        object,
+        "Color"
+    )
+
+    if CURRENT_STYLE == "GhostScope" then
+
+        saveGunOriginal(
+            object,
+            "Transparency"
+        )
+
+        object.Color =
+            ColorSequence.new(WHITE)
+
+        object.Transparency =
+            NumberSequence.new(0.5)
+
+    elseif CURRENT_STYLE == "VoidScope" then
+
+        object.Color =
+            ColorSequence.new({
+
+                ColorSequenceKeypoint.new(
+                    0,
+                    Color3.fromRGB(
+                        255,
+                        255,
+                        255
+                    )
+                ),
+
+                ColorSequenceKeypoint.new(
+                    0.5,
+                    Color3.fromRGB(
+                        170,
+                        170,
+                        170
+                    )
+                ),
+
+                ColorSequenceKeypoint.new(
+                    1,
+                    Color3.fromRGB(
+                        0,
+                        0,
+                        0
+                    )
+                )
+
+            })
+
+    elseif BEAM_COLOR then
+
+        object.Color =
+            ColorSequence.new(
+                BEAM_COLOR
+            )
+
+    end
+
+end
+
+--==================================================*
+-- CHANGE GUN OBJECT
+--==================================================*
+
+local function changeGunObject(object)
+
+    if not equippedGun then
+        return
+    end
+
+    if equippedGun.Name ~= GUN_TOOL_NAME then
+        return
+    end
+
+    --==================================================*
+    -- GHOSTSCOPE
+    --==================================================*
+
+    if CURRENT_STYLE == "GhostScope" then
+
+        if object:IsA("BasePart") then
+
+            saveGunOriginal(
+                object,
+                "Color"
+            )
+
+            saveGunOriginal(
+                object,
+                "Transparency"
+            )
+
+            object.Color = WHITE
+            object.Transparency = 0.5
+
+            if object:IsA("MeshPart") then
+
+                saveGunOriginal(
+                    object,
+                    "TextureID"
+                )
+
+                object.TextureID = ""
+
+            end
+
+        elseif object:IsA("SpecialMesh") then
+
+            saveGunOriginal(
+                object,
+                "TextureId"
+            )
+
+            object.TextureId = ""
+
+            local parent =
+                object.Parent
+
+            if parent
+                and parent:IsA("BasePart") then
+
+                saveGunOriginal(
+                    parent,
+                    "Color"
+                )
+
+                saveGunOriginal(
+                    parent,
+                    "Transparency"
+                )
+
+                parent.Color = WHITE
+                parent.Transparency = 0.5
+
+            end
+
+        elseif object:IsA("Decal")
+            or object:IsA("Texture") then
+
+            saveGunOriginal(
+                object,
+                "Transparency"
+            )
+
+            object.Transparency = 1
+
+        elseif object:IsA("Beam")
+            or object:IsA("Trail") then
+
+            saveGunOriginal(
+                object,
+                "Color"
+            )
+
+            saveGunOriginal(
+                object,
+                "Transparency"
+            )
+
+            object.Color =
+                ColorSequence.new(
+                    WHITE
+                )
+
+            object.Transparency =
+                NumberSequence.new(
+                    0.5
+                )
+
+        end
+
+        return
+
+    end
+
+    --==================================================*
+    -- OTHER STYLES
+    --==================================================*
+
+    if object:IsA("MeshPart") then
+
+        saveGunOriginal(
+            object,
+            "TextureID"
+        )
+
+        object.TextureID =
+            TEXTURE_ID
+
+    elseif object:IsA("SpecialMesh") then
+
+        saveGunOriginal(
+            object,
+            "TextureId"
+        )
+
+        object.TextureId =
+            TEXTURE_ID
+
+    elseif object:IsA("Decal")
+        or object:IsA("Texture") then
+
+        saveGunOriginal(
+            object,
+            "Texture"
+        )
+
+        object.Texture =
+            TEXTURE_ID
+
+    elseif object:IsA("Beam")
+        or object:IsA("Trail") then
+
+        applyEffectColor(object)
+
+    end
+
+end
+
+--==================================================*
+-- APPLY STYLE TO GUN
+--==================================================*
+
+local function applyStyleToGun(tool)
+
+    if not tool then
+        return
+    end
+
+    if not tool:IsA("Tool") then
+        return
+    end
+
+    if tool.Name ~= GUN_TOOL_NAME then
+        return
+    end
+
+    equippedGun = tool
+
+    local textures = 0
+    local effects = 0
+
+    for _, object in ipairs(
+        tool:GetDescendants()
+    ) do
+
+        if CURRENT_STYLE == "GhostScope" then
+
+            if object:IsA("BasePart")
+                or object:IsA("SpecialMesh")
+                or object:IsA("Decal")
+                or object:IsA("Texture") then
+
+                changeGunObject(object)
+                textures += 1
+
+            elseif object:IsA("Beam")
+                or object:IsA("Trail") then
+
+                changeGunObject(object)
+                effects += 1
+
+            end
+
+        elseif object:IsA("MeshPart")
+            or object:IsA("SpecialMesh")
+            or object:IsA("Decal")
+            or object:IsA("Texture") then
+
+            changeGunObject(object)
+            textures += 1
+
+        elseif object:IsA("Beam")
+            or object:IsA("Trail") then
+
+            applyEffectColor(object)
+            effects += 1
+
+        end
+
+    end
+
+    status.Text =
+        CURRENT_STYLE
+        .. " applied • "
+        .. textures
+        .. " textures • "
+        .. effects
+        .. " effects"
+
+end
+
+--==================================================*
+-- RESTORE GUN
+--==================================================*
+
+local function restoreGun(tool)
+
+    if not tool then
+        return
+    end
+
+    for object, properties in pairs(
+        originalGunProperties
+    ) do
+
+        if object and object.Parent then
+
+            for property, originalValue
+                in pairs(properties) do
+
+                pcall(
+                    function()
+
+                        object[property] =
+                            originalValue
+
+                    end
+                )
+
+            end
+
+        end
+
+    end
+
+    originalGunProperties = {}
+
+    if equippedGun == tool then
+        equippedGun = nil
+    end
+
+end
+
+--==================================================*
+-- RESTORE DISPLAY
+--==================================================*
+
+local function restoreDisplay()
+
+    for object, properties in pairs(
+        originalDisplayTextures
+    ) do
+
+        if object and object.Parent then
+
+            for property, originalValue
+                in pairs(properties) do
+
+                pcall(
+                    function()
+
+                        object[property] =
+                            originalValue
+
+                    end
+                )
+
+            end
+
+        end
+
+    end
+
+    originalDisplayTextures = {}
+    selectedGunDisplay = nil
+
+end
+
+--==================================================*
+-- RESET
+--==================================================*
+
+local function resetToNormal()
+
+    restoreDisplay()
+
+    if equippedGun then
+        restoreGun(equippedGun)
+    end
+
+    local character =
+        player.Character
+
+    if character then
+
+        for _, object in ipairs(
+            character:GetChildren()
+        ) do
+
+            if object:IsA("Tool")
+                and object.Name == GUN_TOOL_NAME then
+
+                restoreGun(object)
+
+            end
+
+        end
+
+    end
+
+    local backpack =
+        player:FindFirstChild("Backpack")
+
+    if backpack then
+
+        for _, object in ipairs(
+            backpack:GetChildren()
+        ) do
+
+            if object:IsA("Tool")
+                and object.Name == GUN_TOOL_NAME then
+
+                restoreGun(object)
+
+            end
+
+        end
+
+    end
+
+    CURRENT_STYLE = "Normal"
+    TEXTURE_ID = nil
+    BEAM_COLOR = nil
+
+    updateStyleUI()
+
+    status.Text =
+        "NORMAL • Original color restored."
+
+end
+
+--==================================================*
+-- SELECT STYLE
+--==================================================*
+
+local function selectStyle(styleName)
+
+    local selectedStyle = nil
+
+    for _, style in ipairs(Styles) do
+
+        if style.Name == styleName then
+
+            selectedStyle = style
+            break
+
+        end
+
+    end
+
+    if not selectedStyle then
+        return
+    end
+
+    local gunToReapply = equippedGun
+
+    restoreDisplay()
+
+    if equippedGun then
+        restoreGun(equippedGun)
+    end
+
+    CURRENT_STYLE =
+        selectedStyle.Name
+
+    TEXTURE_ID =
+        selectedStyle.Texture
+
+    BEAM_COLOR =
+        selectedStyle.Beam
+
+    updateStyleUI()
+
+    picker.Visible = false
+
+    if CURRENT_STYLE == "Normal" then
+
+        status.Text =
+            "NORMAL • Original color restored."
+
+        return
+
+    end
+
+    local target,
+        distance,
+        errorMessage =
+        findNearestGunDisplay()
+
+    if not target then
+
+        status.Text =
+            errorMessage
+
+        return
+
+    end
+
+    selectedGunDisplay =
+        target
+
+    local changed =
+        changeDisplayTextures(target)
+
+    if changed == 0 then
+
+        status.Text =
+            "No editable GunDisplay objects found."
+
+    else
+
+        status.Text =
+            CURRENT_STYLE
+            .. " selected • "
+            .. math.floor(distance)
+            .. " studs"
+
+    end
+
+    if CURRENT_STYLE == "GhostScope"
+        and gunToReapply
+        and gunToReapply.Parent then
+
+        applyStyleToGun(
+            gunToReapply
+        )
+
+    end
+
+end
+
+--==================================================*
+-- STYLE BUTTONS
+--==================================================*
+
+for index, style in ipairs(Styles) do
+
+    local button =
+        Instance.new("TextButton")
+
+    button.Name =
+        style.Name .. "Button"
+
+    button.Size =
+        UDim2.new(1, -4, 0, 34)
+
+    button.BackgroundColor3 =
+        getStyleColor(style.Name)
+
+    button.BorderSizePixel = 0
+
+    button.Text =
+        string.upper(style.Name)
+
+    button.TextColor3 =
+        WHITE
+
+    button.Font =
+        Enum.Font.GothamBold
+
+    button.TextSize = 12
+
+    button.LayoutOrder =
+        index
+
+    button.ZIndex = 22
+    button.Parent = pickerScroll
+
+    local corner =
+        Instance.new("UICorner")
+
+    corner.CornerRadius =
+        UDim.new(0, 8)
+
+    corner.Parent = button
+
+    button.MouseButton1Click:Connect(
+        function()
+
+            selectStyle(
+                style.Name
+            )
+
+        end
+    )
+
+end
+
+--==================================================*
+-- STYLE PICKER
+--==================================================*
+
+styleButton.MouseButton1Click:Connect(
+    function()
+
+        picker.Visible =
+            not picker.Visible
+
+        if picker.Visible then
+
+            status.Text =
+                "Select a style."
+
+        end
+
+    end
+)
+
+pickerClose.MouseButton1Click:Connect(
+    function()
+
+        picker.Visible = false
+
+    end
+)
+
+--==================================================*
+-- APPLY BUTTON
+--==================================================*
+
+applyButton.MouseButton1Click:Connect(
+    function()
+
+        if CURRENT_STYLE == "Normal" then
+
+            status.Text =
+                "Select a style before applying."
+
+            return
+
+        end
+
+        local target,
+            distance,
+            errorMessage =
+            findNearestGunDisplay()
+
+        if not target then
+
+            status.Text =
+                errorMessage
+
+            return
+
+        end
+
+        selectedGunDisplay =
+            target
+
+        local changed =
+            changeDisplayTextures(
+                target
+            )
+
+        if changed == 0 then
+
+            status.Text =
+                "No editable GunDisplay objects found."
+
+            return
+
+        end
+
+        if CURRENT_STYLE == "GhostScope"
+            and equippedGun then
+
+            applyStyleToGun(
+                equippedGun
+            )
+
+        end
+
+        status.Text =
+            "Applied "
+            .. CURRENT_STYLE
+            .. " • "
+            .. math.floor(distance)
+            .. " studs"
+
+    end
+)
+
+--==================================================*
+-- RESET BUTTON
+--==================================================*
+
+resetButton.MouseButton1Click:Connect(
+    resetToNormal
+)
+
+--==================================================*
+-- SETUP TOOL
+--==================================================*
+
+local function setupTool(tool)
+
+    if not tool:IsA("Tool") then
+        return
+    end
+
+    if tool.Name ~= GUN_TOOL_NAME then
+        return
+    end
+
+    if connectedTools[tool] then
+        return
+    end
+
+    connectedTools[tool] = true
+    toolEffectConnections[tool] = {}
+
+    local function prepareEffect(object)
+
+        if not (
+            object:IsA("Beam")
+            or object:IsA("Trail")
+        ) then
+
+            return
+
+        end
+
+        saveGunOriginal(
+            object,
+            "Color"
+        )
+
+        saveGunOriginal(
+            object,
+            "Transparency"
+        )
+
+        local connection =
+            object:GetPropertyChangedSignal(
+                "Color"
+            ):Connect(
+                function()
+
+                    if equippedGun ~= tool then
+                        return
+                    end
+
+                    if CURRENT_STYLE == "Normal" then
+                        return
+                    end
+
+                    if not object.Parent then
+                        return
+                    end
+
+                    if CURRENT_STYLE == "GhostScope" then
+
+                        changeGunObject(
+                            object
+                        )
+
+                    else
+
+                        applyEffectColor(
+                            object
+                        )
+
+                    end
+
+                end
+            )
+
+        table.insert(
+            toolEffectConnections[tool],
+            connection
+        )
+
+        if equippedGun == tool
+            and CURRENT_STYLE ~= "Normal" then
+
+            changeGunObject(
+                object
+            )
+
+        end
+
+    end
+
+    for _, object in ipairs(
+        tool:GetDescendants()
+    ) do
+
+        prepareEffect(object)
+
+    end
+
+    gunDescendantConnections[tool] =
+        tool.DescendantAdded:Connect(
+            function(object)
+
+                if object:IsA("Beam")
+                    or object:IsA("Trail") then
+
+                    prepareEffect(object)
+
+                end
+
+                if equippedGun == tool
+                    and CURRENT_STYLE ~= "Normal" then
+
+                    changeGunObject(
+                        object
+                    )
+
+                end
+
+            end
+        )
+
+    tool.Equipped:Connect(
+        function()
+
+            equippedGun = tool
+
+            if CURRENT_STYLE ~= "Normal" then
+
+                applyStyleToGun(
+                    tool
+                )
+
+            else
+
+                status.Text =
+                    "Gun equipped • NORMAL"
+
+            end
+
+        end
+    )
+
+    tool.Unequipped:Connect(
+        function()
+
+            if CURRENT_STYLE == "GhostScope" then
+
+                restoreGun(tool)
+
+                status.Text =
+                    "Gun unequipped • GhostScope remains on GunDisplay."
+
+            else
+
+                restoreGun(tool)
+
+                status.Text =
+                    "Gun unequipped • "
+                    .. CURRENT_STYLE
+
+            end
+
+        end
+    )
+
+    tool.Destroying:Connect(
+        function()
+
+            connectedTools[tool] = nil
+
+            if toolEffectConnections[tool] then
+
+                for _, connection in ipairs(
+                    toolEffectConnections[tool]
+                ) do
+
+                    connection:Disconnect()
+
+                end
+
+                toolEffectConnections[tool] = nil
+
+            end
+
+            if gunDescendantConnections[tool] then
+
+                gunDescendantConnections[tool]:Disconnect()
+
+                gunDescendantConnections[tool] = nil
+
+            end
+
+        end
+    )
+
+end
+
+--==================================================*
+-- CHARACTER WATCHER
+--==================================================*
+
+local function setupCharacter(character)
+
+    for _, object in ipairs(
+        character:GetChildren()
+    ) do
+
+        if object:IsA("Tool") then
+            setupTool(object)
+        end
+
+    end
+
+    character.ChildAdded:Connect(
+        function(object)
+
+            if object:IsA("Tool") then
+                setupTool(object)
+            end
+
+        end
+    )
+
+end
+
+--==================================================*
+-- BACKPACK WATCHER
+--==================================================*
+
+local function setupBackpack()
+
+    local backpack =
+        player:WaitForChild(
+            "Backpack"
+        )
+
+    for _, object in ipairs(
+        backpack:GetChildren()
+    ) do
+
+        if object:IsA("Tool") then
+            setupTool(object)
+        end
+
+    end
+
+    backpack.ChildAdded:Connect(
+        function(object)
+
+            if object:IsA("Tool") then
+                setupTool(object)
+            end
+
+        end
+    )
+
+end
+
+--==================================================*
+-- CHARACTER START
+--==================================================*
+
+if player.Character then
+    setupCharacter(
+        player.Character
+    )
+end
+
+player.CharacterAdded:Connect(
+    function(character)
+
+        equippedGun = nil
+        originalGunProperties = {}
+
+        setupCharacter(
+            character
+        )
+
+    end
+)
+
+setupBackpack()
+
+--==================================================*
+-- GUNDISPLAY WATCHER
+--==================================================*
+
+workspace.DescendantAdded:Connect(
+    function(object)
+
+        if object.Name ~= TARGET_NAME then
+            return
+        end
+
+        task.spawn(
+            function()
+
+                task.wait(0.15)
+
+                if CURRENT_STYLE == "Normal" then
+                    return
+                end
+
+                local nearest =
+                    findNearestGunDisplay()
+
+                if not nearest then
+                    return
+                end
+
+                selectedGunDisplay =
+                    nearest
+
+                changeDisplayTextures(
+                    nearest
+                )
+
+                status.Text =
+                    "New GunDisplay • "
+                    .. CURRENT_STYLE
+
+            end
+        )
+
+    end
+)
+
+--==================================================*
+-- OPEN / CLOSE UI
+--==================================================*
+
+local mobileButton
+
+local function toggleUI()
+
+    main.Visible =
+        not main.Visible
+
+    if main.Visible then
+
+        mobileButton.Text =
+            "CLOSE UI"
+
+    else
+
+        mobileButton.Text =
+            "OPEN UI"
+
+    end
+
+end
+
+mobileButton =
+    Instance.new("TextButton")
+
+mobileButton.Name =
+    "OpenPanel"
+
+mobileButton.Size =
+    UDim2.fromOffset(
+        125,
+        48
+    )
+
+mobileButton.Position =
+    UDim2.new(
+        1,
+        -140,
+        1,
+        -65
+    )
+
+mobileButton.BackgroundColor3 =
+    Color3.fromRGB(200, 20, 20)
+
+mobileButton.BorderSizePixel = 0
+
+mobileButton.Text =
+    "CLOSE UI"
+
+mobileButton.TextColor3 =
+    WHITE
+
+mobileButton.Font =
+    Enum.Font.GothamBold
+
+mobileButton.TextSize = 14
+
+mobileButton.Parent =
+    gui
+
+local mobileCorner =
+    Instance.new("UICorner")
+
+mobileCorner.CornerRadius =
+    UDim.new(0, 12)
+
+mobileCorner.Parent =
+    mobileButton
+
+--==================================================*
+-- MOBILE BUTTON DRAGGING
+--==================================================*
+
+local mobileDragging = false
+local mobileDragStart
+local mobileStartPosition
+local mobileMoved = false
+
+mobileButton.InputBegan:Connect(function(input)
+
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
+
+        mobileDragging = true
+        mobileMoved = false
+        mobileDragStart = input.Position
+        mobileStartPosition = mobileButton.Position
+
+    end
+
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+
+    if not mobileDragging then
+        return
+    end
+
+    if input.UserInputType ~= Enum.UserInputType.MouseMovement
+        and input.UserInputType ~= Enum.UserInputType.Touch then
+
+        return
+
+    end
+
+    local delta =
+        input.Position - mobileDragStart
+
+    if math.abs(delta.X) > 5
+        or math.abs(delta.Y) > 5 then
+
+        mobileMoved = true
+
+    end
+
+    mobileButton.Position = UDim2.new(
+        mobileStartPosition.X.Scale,
+        mobileStartPosition.X.Offset + delta.X,
+        mobileStartPosition.Y.Scale,
+        mobileStartPosition.Y.Offset + delta.Y
+    )
+
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
+
+        if mobileDragging and not mobileMoved then
+            toggleUI()
+        end
+
+        mobileDragging = false
+
+    end
+
+end)
+
+--==================================================*
+-- KEYBIND
+--==================================================*
+
+keybindButton.MouseButton1Click:Connect(
+    function()
+
+        if waitingForKey then
+            return
+        end
+
+        waitingForKey = true
+
+        keybindButton.Text =
+            "PRESS A KEY..."
+
+        status.Text =
+            "Press a key • ESC to cancel"
+
+    end
+)
+
+--==================================================*
+-- KEYBOARD
+--==================================================*
+
+UserInputService.InputBegan:Connect(
+    function(input)
+
+        if input.UserInputType
+            ~= Enum.UserInputType.Keyboard then
+
+            return
+
+        end
+
+        if waitingForKey then
+
+            if input.KeyCode
+                == Enum.KeyCode.Escape then
+
+                waitingForKey = false
+
+                keybindButton.Text =
+                    "HIDE UI: "
+                    .. hideKey.Name
+
+                status.Text =
+                    "Key change cancelled."
+
+                return
+
+            end
+
+            hideKey =
+                input.KeyCode
+
+            waitingForKey = false
+
+            keybindButton.Text =
+                "HIDE UI: "
+                .. hideKey.Name
+
+            status.Text =
+                "Hide key: "
+                .. hideKey.Name
+
+            return
+
+        end
+
+        if input.KeyCode == hideKey then
+            toggleUI()
+        end
+
+    end
+)
+
+--==================================================*
+-- CLOSE BUTTON
+--==================================================*
+
+closeButton.MouseButton1Click:Connect(
+    function()
+
+        main.Visible = false
+        mobileButton.Text = "OPEN UI"
+
+    end
+)
+
+--==================================================*
+-- INITIAL STATE
+--==================================================*
+
+updateStyleUI()
+
+--==================================================*
+-- LOADING SCREEN OUT
+--==================================================*
+
+TweenService:Create(
+    loadingTitle,
+    TweenInfo.new(0.35),
+    {
+        TextTransparency = 1
+    }
+):Play()
+
+TweenService:Create(
+    loadingSub,
+    TweenInfo.new(0.35),
+    {
+        TextTransparency = 1
+    }
+):Play()
+
+TweenService:Create(
+    loadingBackground,
+    TweenInfo.new(0.5),
+    {
+        BackgroundTransparency = 1
+    }
+):Play()
+
+task.wait(0.55)
+
+loadingGui:Destroy()
+
+--==================================================*
+-- LOADED
+--==================================================*
+
+print("========================================")
+print("[RED BEE HUB] Gun Customizer Loaded")
+print("[RED BEE HUB] Owned by Red Bee")
+print("[RED BEE HUB] Local-only system")
+print("[RED BEE HUB] Starting Style: Normal")
+print("[RED BEE HUB] RedScope:", RED_TEXTURE_ID)
+print("[RED BEE HUB] BlueScope:", BLUE_TEXTURE_ID)
+print("[RED BEE HUB] Purple:", PURPLE_TEXTURE_ID)
+print("[RED BEE HUB] VoidScope: WHITE -> BLACK")
+print("[RED BEE HUB] Rosescope: PINK")
+print("[RED BEE HUB] WhiteScope: WHITE")
+print("[RED BEE HUB] GhostScope: GUNDISPLAY / NO TEXTURE / WHITE / 50%")
+print("[RED BEE HUB] GhostScope also applies to equipped Gun")
+print("[RED BEE HUB] All scopes use nearest GunDisplay")
+print("[RED BEE HUB] Hide Key:", hideKey.Name)
+print("========================================")
